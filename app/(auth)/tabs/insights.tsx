@@ -1,12 +1,12 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 
-const subscriptions = () => {
+const insights = () => {
   return (
     <View>
-      <Text>subscriptions</Text>
+      <Text>insights</Text>
     </View>
   )
 }
 
-export default subscriptions
+export default insights
