@@ -17,6 +17,22 @@ export default function App() {
       <Link href="/(auth)/sign-up" className="mt-4 rounded bg-primary text-white p-4">
       Go to Sign Up
       </Link>
+
+      <Link
+        href={{
+          pathname: "/tabs/subscriptions/[id]",
+          params: { id: "spotify" },
+        }}
+      >
+        Spotify Subscription
+      </Link>
+      <Link href={{
+        pathname: "/tabs/subscriptions/[id]",
+        params: { id: "claude" },
+      }}
+      >
+        Claude Max Subscription
+      </Link> 
     </View>
   );
 }
