@@ -1,5 +1,5 @@
 {
-  "name": "react-native",
+  "name": "subscription-tracker",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
