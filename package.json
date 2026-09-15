@@ -3,11 +3,11 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "expo start",
+    "start": "set NODE_OPTIONS=--no-network-family-autoselection && expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
+    "android": "set NODE_OPTIONS=--no-network-family-autoselection && expo start --android",
+    "ios": "set NODE_OPTIONS=--no-network-family-autoselection && expo start --ios",
+    "web": "set NODE_OPTIONS=--no-network-family-autoselection && expo start --web",
     "lint": "expo lint"
   },
   "dependencies": {
