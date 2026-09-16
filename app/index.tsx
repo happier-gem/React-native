@@ -7,22 +7,27 @@ import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
-export default function Home() {
+export default function App() {
   return (
     <SafeAreaView className="flex-1 bg-background p-5">
-      <Text className="text-4xl font-extrabold text-foreground mb-6">
-        Home
+      <Text className="text-xl font-bold text-success">
+        Welcome to Nativewind!
       </Text>
+      <Link href="/onboarding" className="mt-4 rounded-2xl bg-primary text-white p-4">
+        Go to Onboarding
+      </Link>
+      <Link href="/(auth)/sign-in" className="mt-4 rounded-2xl bg-primary text-white p-4">
+        Go to Sign in
+      </Link>
+      <Link href="/(auth)/sign-up" className="mt-4 rounded-2xl bg-primary text-white p-4">
+        Go to Sign up
+      </Link>
 
-      <Text className="text-sm font-semibold text-muted-foreground mb-2">
-        Your subscriptions
-      </Text>
       <Link
         href={{
           pathname: "/subscriptions/[id]",
           params: { id: "spotify" },
         }}
-        className="rounded-2xl bg-primary text-white p-4 mb-3"
       >
         Spotify Subscription
       </Link>
@@ -31,7 +36,6 @@ export default function Home() {
           pathname: "/subscriptions/[id]",
           params: { id: "claude" },
         }}
-        className="rounded-2xl bg-primary text-white p-4"
       >
         Claude Max Subscription
       </Link>

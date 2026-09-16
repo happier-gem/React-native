@@ -18,18 +18,18 @@ const TabIcon = ({focused, icon}: TabIconProps) => {
     );
 };
 const TabLayout = () => {
-        // const { isSignedIn, isLoaded } = useAuth();
+        const { isSignedIn, isLoaded } = useAuth();
         const insets = useSafeAreaInsets();
 
-        // // Wait for auth to load before rendering anything
-        // if (!isLoaded) {
-        //     return null;
-        // }
+        // Wait for auth to load before rendering anything
+        if (!isLoaded) {
+            return null;
+        }
 
-        // // Redirect to sign-in if user is not authenticated
-        // if (!isSignedIn) {
-        //     return <Redirect href="/(auth)/sign-in" />;
-        // }
+        // Redirect to sign-in if user is not authenticated
+        if (!isSignedIn) {
+            return <Redirect href="/(auth)/sign-in" />;
+        }
 
         return (
             <Tabs
