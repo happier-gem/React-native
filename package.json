@@ -8,9 +8,11 @@
     "android": "set NODE_OPTIONS=--no-network-family-autoselection && expo start --android",
     "ios": "set NODE_OPTIONS=--no-network-family-autoselection && expo start --ios",
     "web": "set NODE_OPTIONS=--no-network-family-autoselection && expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "postinstall": "patch-package"
   },
   "dependencies": {
+    "@clerk/expo": "^4.6.8",
     "@expo/vector-icons": "^15.0.3",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
@@ -23,6 +25,7 @@
     "expo-image": "~3.0.11",
     "expo-linking": "~8.0.12",
     "expo-router": "~6.0.24",
+    "expo-secure-store": "~15.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "expo-symbols": "~1.0.8",
@@ -45,6 +48,7 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "patch-package": "^8.0.1",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.2"

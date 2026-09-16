@@ -1,0 +1,21 @@
+diff --git a/node_modules/@clerk/expo/node_modules/@clerk/shared/package.json b/node_modules/@clerk/expo/node_modules/@clerk/shared/package.json
+index 6e8822b..86bbd04 100644
+--- a/node_modules/@clerk/expo/node_modules/@clerk/shared/package.json
++++ b/node_modules/@clerk/expo/node_modules/@clerk/shared/package.json
+@@ -51,6 +51,16 @@
+         "default": "./dist/react/index.js"
+       }
+     },
++    "./telemetry": {
++      "import": {
++        "types": "./dist/telemetry.d.mts",
++        "default": "./dist/telemetry.mjs"
++      },
++      "require": {
++        "types": "./dist/telemetry.d.ts",
++        "default": "./dist/telemetry.js"
++      }
++    },
+     "./keyless": {
+       "import": {
+         "types": "./dist/keyless/index.d.mts",
