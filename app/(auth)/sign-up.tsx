@@ -13,6 +13,7 @@ const SignUp = () => {
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
     const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [error, setError] = useState("")
 
     const handleSignUp = () => {
@@ -86,16 +87,25 @@ const SignUp = () => {
                     <Text className="text-sm font-semibold text-foreground mb-2">
                         Confirm password
                     </Text>
-                    <TextInput
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                        placeholder="••••••••"
-                        placeholderTextColor={colors.mutedForeground}
-                        secureTextEntry={!showPassword}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        className="bg-card border border-border rounded-2xl px-4 py-3.5 text-foreground mb-2"
-                    />
+                    <View className="flex-row items-center bg-card border border-border rounded-2xl mb-2">
+                        <TextInput
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            placeholder="••••••••"
+                            placeholderTextColor={colors.mutedForeground}
+                            secureTextEntry={!showConfirmPassword}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            className="flex-1 px-4 py-3.5 text-foreground"
+                        />
+                        <Pressable onPress={() => setShowConfirmPassword((v) => !v)} className="px-4">
+                            <Ionicons
+                                name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
+                                size={20}
+                                color={colors.mutedForeground}
+                            />
+                        </Pressable>
+                    </View>
 
                     {error ? (
                         <Text className="text-sm text-destructive mb-2">{error}</Text>
@@ -103,8 +113,9 @@ const SignUp = () => {
 
                     <Pressable
                         onPress={handleSignUp}
-                        className="rounded-2xl bg-primary p-4 items-center mt-6"
+                        className="flex-row rounded-2xl bg-primary p-4 items-center justify-center mt-6"
                     >
+                        <Ionicons name="person-add-outline" size={18} color="#ffffff" style={{ marginRight: 8 }} />
                         <Text className="text-base font-semibold text-white">Create Account</Text>
                     </Pressable>
 

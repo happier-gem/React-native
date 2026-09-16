@@ -84,8 +84,9 @@ const SignIn = () => {
 
                     <Pressable
                         onPress={handleSignIn}
-                        className="rounded-2xl bg-primary p-4 items-center mt-6"
+                        className="flex-row rounded-2xl bg-primary p-4 items-center justify-center mt-6"
                     >
+                        <Ionicons name="log-in-outline" size={18} color="#ffffff" style={{ marginRight: 8 }} />
                         <Text className="text-base font-semibold text-white">Sign In</Text>
                     </Pressable>
 
