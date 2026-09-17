@@ -3,6 +3,8 @@ import { Stack } from "expo-router";
 import '@/global.css';
 import { useFonts } from "expo-font";
 import * as SplashScreen from 'expo-splash-screen';
+import { ThemeProvider } from '@/context/theme-context';
+import { AccountProvider } from '@/context/account-context';
 // import { ClerkProvider } from '@clerk/expo';
 // import { tokenCache } from '@clerk/expo/token-cache';
 
@@ -32,7 +34,11 @@ export default function RootLayout() {
 
   return (
     // <ClerkProvider publishableKey={publishableKey!} tokenCache={tokenCache}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <ThemeProvider>
+        <AccountProvider>
+          <Stack screenOptions={{ headerShown: false }} />
+        </AccountProvider>
+      </ThemeProvider>
     // </ClerkProvider>
   );
 }
