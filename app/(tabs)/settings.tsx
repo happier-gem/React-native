@@ -13,9 +13,8 @@ import { Link } from "expo-router";
 import { styled } from "nativewind";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "@/constants/theme";
 import { useAccount } from "@/context/account-context";
-import { accentPresets, useAppTheme } from "@/context/theme-context";
+import { accentPresets, ThemeMode, useAppTheme } from "@/context/theme-context";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -29,31 +28,34 @@ const SettingsRow = ({
   value?: string;
   swatchColor?: string;
   last?: boolean;
-}) => (
-  <View
-    className={`flex-row items-center justify-between py-4 ${
-      last ? "" : "border-b border-border"
-    }`}
-  >
-    <Text className="text-base text-foreground">{label}</Text>
-    <View className="flex-row items-center">
-      {swatchColor ? (
-        <View
-          className="w-7 h-7 rounded-full mr-2"
-          style={{
-            backgroundColor: swatchColor,
-            borderWidth: 2,
-            borderColor: colors.foreground,
-          }}
-        />
-      ) : null}
-      {value ? (
-        <Text className="text-sm text-muted-foreground mr-2">{value}</Text>
-      ) : null}
-      <Text className="text-muted-foreground">{">"}</Text>
+}) => {
+  const { colors } = useAppTheme();
+  return (
+    <View
+      className={`flex-row items-center justify-between py-4 ${
+        last ? "" : "border-b border-border"
+      }`}
+    >
+      <Text className="text-base text-foreground">{label}</Text>
+      <View className="flex-row items-center">
+        {swatchColor ? (
+          <View
+            className="w-7 h-7 rounded-full mr-2"
+            style={{
+              backgroundColor: swatchColor,
+              borderWidth: 2,
+              borderColor: colors.foreground,
+            }}
+          />
+        ) : null}
+        {value ? (
+          <Text className="text-sm text-muted-foreground mr-2">{value}</Text>
+        ) : null}
+        <Text className="text-muted-foreground">{">"}</Text>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 const EditAccountModal = ({
   visible,
@@ -62,6 +64,7 @@ const EditAccountModal = ({
   visible: boolean;
   onClose: () => void;
 }) => {
+  const { colors } = useAppTheme();
   const { account, updateAccount } = useAccount();
   const [name, setName] = useState(account.name);
   const [email, setEmail] = useState(account.email);
@@ -124,7 +127,7 @@ const AccentPickerModal = ({
   visible: boolean;
   onClose: () => void;
 }) => {
-  const { accent, setAccent } = useAppTheme();
+  const { colors, accent, setAccent } = useAppTheme();
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -181,15 +184,78 @@ const AccentPickerModal = ({
   );
 };
 
+const themeModeOptions: { mode: ThemeMode; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { mode: "light", label: "Light", icon: "sunny-outline" },
+  { mode: "dark", label: "Dark", icon: "moon-outline" },
+  { mode: "system", label: "System", icon: "phone-portrait-outline" },
+];
+
+const AppearanceModal = ({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) => {
+  const { colors, accent, mode, setMode } = useAppTheme();
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View className="flex-1 justify-end bg-black/40">
+        <View className="bg-background rounded-t-3xl p-6">
+          <Text className="text-xl font-extrabold text-foreground mb-5">
+            Appearance
+          </Text>
+
+          {themeModeOptions.map((option) => {
+            const selected = option.mode === mode;
+            return (
+              <Pressable
+                key={option.mode}
+                onPress={() => setMode(option.mode)}
+                className="flex-row items-center justify-between bg-card rounded-2xl p-4 mb-3"
+              >
+                <View className="flex-row items-center">
+                  <Ionicons
+                    name={option.icon}
+                    size={20}
+                    color={selected ? accent : colors.mutedForeground}
+                  />
+                  <Text className="text-base text-foreground ml-3">
+                    {option.label}
+                  </Text>
+                </View>
+                {selected ? (
+                  <Ionicons name="checkmark-circle" size={22} color={accent} />
+                ) : null}
+              </Pressable>
+            );
+          })}
+
+          <Pressable
+            onPress={onClose}
+            className="rounded-2xl bg-primary p-4 items-center mt-3"
+          >
+            <Text className="text-base font-semibold text-white">Done</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 const Settings = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [editAccountVisible, setEditAccountVisible] = useState(false);
   const [accentPickerVisible, setAccentPickerVisible] = useState(false);
+  const [appearanceVisible, setAppearanceVisible] = useState(false);
   const { account } = useAccount();
-  const { accent } = useAppTheme();
+  const { colors, accent, mode } = useAppTheme();
 
   const accentName =
     accentPresets.find((preset) => preset.value === accent)?.name ?? "Custom";
+  const modeLabel =
+    themeModeOptions.find((option) => option.mode === mode)?.label ?? "System";
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -235,6 +301,9 @@ const Settings = () => {
             />
           </View>
           <SettingsRow label="Currency" value="USD" />
+          <Pressable onPress={() => setAppearanceVisible(true)}>
+            <SettingsRow label="Appearance" value={modeLabel} />
+          </Pressable>
           <Pressable onPress={() => setAccentPickerVisible(true)}>
             <SettingsRow
               label="Accent Color"
@@ -268,6 +337,10 @@ const Settings = () => {
       <AccentPickerModal
         visible={accentPickerVisible}
         onClose={() => setAccentPickerVisible(false)}
+      />
+      <AppearanceModal
+        visible={appearanceVisible}
+        onClose={() => setAppearanceVisible(false)}
       />
     </SafeAreaView>
   );

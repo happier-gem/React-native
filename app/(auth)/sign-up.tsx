@@ -4,11 +4,12 @@ import { Link, router } from "expo-router"
 import { styled } from "nativewind"
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
-import { colors } from "@/constants/theme"
+import { useAppTheme } from "@/context/theme-context"
 
 const SafeAreaView = styled(RNSafeAreaView)
 
 const SignUp = () => {
+    const { colors } = useAppTheme()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")

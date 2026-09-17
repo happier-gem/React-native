@@ -3,7 +3,8 @@ import { Stack } from "expo-router";
 import '@/global.css';
 import { useFonts } from "expo-font";
 import * as SplashScreen from 'expo-splash-screen';
-import { ThemeProvider } from '@/context/theme-context';
+import { StatusBar } from 'expo-status-bar';
+import { ThemeProvider, useAppTheme } from '@/context/theme-context';
 import { AccountProvider } from '@/context/account-context';
 // import { ClerkProvider } from '@clerk/expo';
 // import { tokenCache } from '@clerk/expo/token-cache';
@@ -13,6 +14,11 @@ import { AccountProvider } from '@/context/account-context';
 // if (!publishableKey) {
 //   throw new Error('Add EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY to your .env.local file');
 // }
+
+function AppStatusBar() {
+  const { resolvedScheme } = useAppTheme();
+  return <StatusBar style={resolvedScheme === 'dark' ? 'light' : 'dark'} />;
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -36,6 +42,7 @@ export default function RootLayout() {
     // <ClerkProvider publishableKey={publishableKey!} tokenCache={tokenCache}>
       <ThemeProvider>
         <AccountProvider>
+          <AppStatusBar />
           <Stack screenOptions={{ headerShown: false }} />
         </AccountProvider>
       </ThemeProvider>
