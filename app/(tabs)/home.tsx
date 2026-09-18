@@ -1,21 +1,19 @@
 import { Pressable, ScrollView, Text, View } from "react-native";
 import React from "react";
 import { Link } from "expo-router";
-import {
-  formatRenewalDate,
-  subscriptions,
-  totalMonthlySpend,
-} from "@/constants/data";
+import { formatRenewalDate } from "@/constants/data";
 import { ThemedSafeAreaView, ThemedText, Card } from "@/components/themed";
 import { BrandIcon } from "@/components/brand-icon";
 import { useCurrency } from "@/context/currency-context";
-
-const upcoming = [...subscriptions]
-  .sort((a, b) => a.renewalDate.localeCompare(b.renewalDate))
-  .slice(0, 3);
+import { useSubscriptions } from "@/context/subscriptions-context";
 
 const Home = () => {
   const { format } = useCurrency();
+  const { activeSubscriptions, totalMonthlySpend } = useSubscriptions();
+
+  const upcoming = [...activeSubscriptions]
+    .sort((a, b) => a.renewalDate.localeCompare(b.renewalDate))
+    .slice(0, 3);
 
   return (
     <ThemedSafeAreaView>
@@ -42,32 +40,38 @@ const Home = () => {
           Upcoming renewals
         </ThemedText>
 
-        {upcoming.map((sub) => (
-          <Link
-            key={sub.id}
-            href={{ pathname: "/subscriptions/[id]", params: { id: sub.id } }}
-            asChild
-          >
-            <Pressable>
-              <Card className="flex-row items-center rounded-2xl p-4 mb-3">
-                <View className="mr-4">
-                  <BrandIcon icon={sub.icon} brandColor={sub.brandColor} size={40} />
-                </View>
-                <View className="flex-1">
+        {upcoming.length === 0 ? (
+          <ThemedText tone="muted" className="text-sm">
+            No active subscriptions.
+          </ThemedText>
+        ) : (
+          upcoming.map((sub) => (
+            <Link
+              key={sub.id}
+              href={{ pathname: "/subscriptions/[id]", params: { id: sub.id } }}
+              asChild
+            >
+              <Pressable>
+                <Card className="flex-row items-center rounded-2xl p-4 mb-3">
+                  <View className="mr-4">
+                    <BrandIcon icon={sub.icon} brandColor={sub.brandColor} size={40} />
+                  </View>
+                  <View className="flex-1">
+                    <ThemedText className="text-base font-semibold">
+                      {sub.name}
+                    </ThemedText>
+                    <ThemedText tone="muted" className="text-xs mt-0.5">
+                      Renews {formatRenewalDate(sub.renewalDate)}
+                    </ThemedText>
+                  </View>
                   <ThemedText className="text-base font-semibold">
-                    {sub.name}
+                    {format(sub.price)}
                   </ThemedText>
-                  <ThemedText tone="muted" className="text-xs mt-0.5">
-                    Renews {formatRenewalDate(sub.renewalDate)}
-                  </ThemedText>
-                </View>
-                <ThemedText className="text-base font-semibold">
-                  {format(sub.price)}
-                </ThemedText>
-              </Card>
-            </Pressable>
-          </Link>
-        ))}
+                </Card>
+              </Pressable>
+            </Link>
+          ))
+        )}
       </ScrollView>
     </ThemedSafeAreaView>
   );

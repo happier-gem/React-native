@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useAppTheme } from '@/context/theme-context';
 import { AccountProvider } from '@/context/account-context';
 import { CurrencyProvider } from '@/context/currency-context';
+import { SubscriptionsProvider } from '@/context/subscriptions-context';
 // import { ClerkProvider } from '@clerk/expo';
 // import { tokenCache } from '@clerk/expo/token-cache';
 
@@ -44,8 +45,10 @@ export default function RootLayout() {
       <ThemeProvider>
         <AccountProvider>
           <CurrencyProvider>
-            <AppStatusBar />
-            <Stack screenOptions={{ headerShown: false }} />
+            <SubscriptionsProvider>
+              <AppStatusBar />
+              <Stack screenOptions={{ headerShown: false }} />
+            </SubscriptionsProvider>
           </CurrencyProvider>
         </AccountProvider>
       </ThemeProvider>
