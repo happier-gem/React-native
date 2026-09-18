@@ -1,11 +1,14 @@
 import React from "react";
 import { Text, TextProps, View, ViewProps } from "react-native";
 import { SafeAreaView as RNSafeAreaView, SafeAreaViewProps } from "react-native-safe-area-context";
+import { styled } from "nativewind";
 import { useAppTheme } from "@/context/theme-context";
+
+const StyledSafeAreaView = styled(RNSafeAreaView);
 
 export function ThemedSafeAreaView({ style, ...props }: SafeAreaViewProps) {
     const { colors } = useAppTheme();
-    return <RNSafeAreaView style={[{ flex: 1, backgroundColor: colors.background }, style]} {...props} />;
+    return <StyledSafeAreaView style={[{ flex: 1, backgroundColor: colors.background }, style]} {...props} />;
 }
 
 export function ThemedView({ style, ...props }: ViewProps) {
