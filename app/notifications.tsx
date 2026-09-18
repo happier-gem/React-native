@@ -36,7 +36,8 @@ const Notifications = () => {
   const hasNotifications = renewingSoon.length > 0 || canceled.length > 0;
 
   return (
-    <ThemedSafeAreaView className="px-5 pt-5">
+    <ThemedSafeAreaView>
+      <View className="flex-1 px-5 pt-5">
       <BackLink />
       <ThemedText className="text-3xl font-extrabold mb-5">
         Notifications
@@ -130,6 +131,7 @@ const Notifications = () => {
           </>
         ) : null}
       </ScrollView>
+      </View>
     </ThemedSafeAreaView>
   );
 };

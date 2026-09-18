@@ -137,11 +137,13 @@ const SubscriptionDetails = () => {
 
   if (!subscription) {
     return (
-      <ThemedSafeAreaView className="p-5">
-        <ThemedText className="text-lg font-semibold mb-4">
-          Subscription not found
-        </ThemedText>
-        <BackLink />
+      <ThemedSafeAreaView>
+        <View className="flex-1 p-5">
+          <ThemedText className="text-lg font-semibold mb-4">
+            Subscription not found
+          </ThemedText>
+          <BackLink />
+        </View>
       </ThemedSafeAreaView>
     );
   }
@@ -179,7 +181,8 @@ const SubscriptionDetails = () => {
   };
 
   return (
-    <ThemedSafeAreaView className="p-5">
+    <ThemedSafeAreaView>
+      <View className="flex-1 p-5">
       <View className="flex-row items-center justify-between mb-6">
         <BackLink />
         <Pressable onPress={() => setEditVisible(true)} className="flex-row items-center">
@@ -272,6 +275,7 @@ const SubscriptionDetails = () => {
         onClose={() => setEditVisible(false)}
         subscription={subscription}
       />
+      </View>
     </ThemedSafeAreaView>
   );
 };
