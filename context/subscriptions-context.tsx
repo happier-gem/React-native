@@ -38,6 +38,11 @@ const addCycle = (isoDate: string, cycle: BillingCycle) => {
     return date.toISOString().slice(0, 10);
 };
 
+export type SubscriptionEdits = {
+    price: number;
+    cycle: BillingCycle;
+};
+
 type SubscriptionsContextValue = {
     subscriptions: Subscription[];
     activeSubscriptions: Subscription[];
@@ -45,6 +50,7 @@ type SubscriptionsContextValue = {
     getSubscription: (id: string) => Subscription | undefined;
     cancelSubscription: (id: string) => void;
     renewSubscription: (id: string) => void;
+    updateSubscription: (id: string, edits: SubscriptionEdits) => void;
 };
 
 const SubscriptionsContext = createContext<SubscriptionsContextValue | undefined>(undefined);
@@ -65,6 +71,12 @@ export function SubscriptionsProvider({ children }: { children: ReactNode }) {
                     ? { ...sub, status: "active", renewalDate: addCycle(sub.renewalDate, sub.cycle) }
                     : sub
             )
+        );
+    };
+
+    const updateSubscription = (id: string, edits: SubscriptionEdits) => {
+        setSubscriptions((prev) =>
+            prev.map((sub) => (sub.id === id ? { ...sub, ...edits } : sub))
         );
     };
 
@@ -89,6 +101,7 @@ export function SubscriptionsProvider({ children }: { children: ReactNode }) {
                 getSubscription,
                 cancelSubscription,
                 renewSubscription,
+                updateSubscription,
             }}
         >
             {children}

@@ -1,23 +1,20 @@
 import { ScrollView, Text, View } from "react-native";
 import React from "react";
-import {
-  monthlyEquivalent,
-  subscriptions,
-  totalMonthlySpend,
-} from "@/constants/data";
 import { useAppTheme } from "@/context/theme-context";
 import { useCurrency } from "@/context/currency-context";
+import { monthlyEquivalent, useSubscriptions } from "@/context/subscriptions-context";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 import { BrandIcon } from "@/components/brand-icon";
-
-const ranked = [...subscriptions].sort(
-  (a, b) => monthlyEquivalent(b) - monthlyEquivalent(a)
-);
-const maxMonthly = Math.max(...ranked.map(monthlyEquivalent));
 
 const Insights = () => {
   const { colors, accent } = useAppTheme();
   const { format } = useCurrency();
+  const { activeSubscriptions, totalMonthlySpend } = useSubscriptions();
+
+  const ranked = [...activeSubscriptions].sort(
+    (a, b) => monthlyEquivalent(b) - monthlyEquivalent(a)
+  );
+  const maxMonthly = Math.max(0, ...ranked.map(monthlyEquivalent));
 
   return (
     <ThemedSafeAreaView>
@@ -49,35 +46,41 @@ const Insights = () => {
         Spending by subscription
       </ThemedText>
 
-      {ranked.map((sub) => {
-        const monthly = monthlyEquivalent(sub);
-        const widthPct = maxMonthly > 0 ? (monthly / maxMonthly) * 100 : 0;
-        return (
-          <View key={sub.id} className="mb-4">
-            <View className="flex-row items-center mb-1.5">
-              <View className="mr-2">
-                <BrandIcon icon={sub.icon} brandColor={sub.brandColor} size={20} />
+      {ranked.length === 0 ? (
+        <ThemedText tone="muted" className="text-sm">
+          No active subscriptions.
+        </ThemedText>
+      ) : (
+        ranked.map((sub) => {
+          const monthly = monthlyEquivalent(sub);
+          const widthPct = maxMonthly > 0 ? (monthly / maxMonthly) * 100 : 0;
+          return (
+            <View key={sub.id} className="mb-4">
+              <View className="flex-row items-center mb-1.5">
+                <View className="mr-2">
+                  <BrandIcon icon={sub.icon} brandColor={sub.brandColor} size={20} />
+                </View>
+                <ThemedText className="flex-1 text-sm font-medium">
+                  {sub.name}
+                </ThemedText>
+                <ThemedText className="text-sm font-semibold">
+                  {format(monthly)}
+                  <Text style={{ color: colors.mutedForeground }} className="text-xs">/mo</Text>
+                </ThemedText>
               </View>
-              <ThemedText className="flex-1 text-sm font-medium">
-                {sub.name}
-              </ThemedText>
-              <ThemedText className="text-sm font-semibold">
-                {format(monthly)}
-                <Text style={{ color: colors.mutedForeground }} className="text-xs">/mo</Text>
-              </ThemedText>
-            </View>
-            <View
-              style={{ backgroundColor: colors.muted }}
-              className="h-2 rounded-full overflow-hidden"
-            >
               <View
-                style={{ width: `${widthPct}%`, backgroundColor: accent }}
-                className="h-2 rounded-full"
-              />
+                style={{ backgroundColor: colors.muted }}
+                className="h-2 rounded-full overflow-hidden"
+              >
+                <View
+                  style={{ width: `${widthPct}%`, backgroundColor: accent }}
+                  className="h-2 rounded-full"
+                />
+              </View>
             </View>
-          </View>
-        );
-      })}
+          );
+        })
+      )}
       </ScrollView>
     </ThemedSafeAreaView>
   );
