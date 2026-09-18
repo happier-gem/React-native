@@ -1,19 +1,28 @@
 import { Pressable, ScrollView, Text, View } from "react-native";
 import React from "react";
 import { Link } from "expo-router";
-import { formatRenewalDate } from "@/constants/data";
+import { Ionicons } from "@expo/vector-icons";
+import { daysUntil, formatRenewalDate } from "@/constants/data";
 import { ThemedSafeAreaView, ThemedText, Card } from "@/components/themed";
 import { BrandIcon } from "@/components/brand-icon";
 import { useCurrency } from "@/context/currency-context";
+import { useAppTheme } from "@/context/theme-context";
 import { useSubscriptions } from "@/context/subscriptions-context";
+
+const NOTIFICATION_WINDOW_DAYS = 7;
 
 const Home = () => {
   const { format } = useCurrency();
-  const { activeSubscriptions, totalMonthlySpend } = useSubscriptions();
+  const { colors } = useAppTheme();
+  const { activeSubscriptions, subscriptions, totalMonthlySpend } = useSubscriptions();
 
   const upcoming = [...activeSubscriptions]
     .sort((a, b) => a.renewalDate.localeCompare(b.renewalDate))
     .slice(0, 3);
+
+  const notificationCount =
+    activeSubscriptions.filter((sub) => daysUntil(sub.renewalDate) <= NOTIFICATION_WINDOW_DAYS).length +
+    subscriptions.filter((sub) => sub.status === "canceled").length;
 
   return (
     <ThemedSafeAreaView>
@@ -22,9 +31,28 @@ const Home = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 96 }}
       >
-        <ThemedText className="text-3xl font-extrabold mb-5">
-          Home
-        </ThemedText>
+        <View className="flex-row items-center justify-between mb-5">
+          <ThemedText className="text-3xl font-extrabold">
+            Home
+          </ThemedText>
+          <Link href="/notifications" asChild>
+            <Pressable style={{ padding: 4 }}>
+              <View>
+                <Ionicons name="notifications-outline" size={26} color={colors.foreground} />
+                {notificationCount > 0 ? (
+                  <View
+                    className="absolute -top-1 -right-1 rounded-full items-center justify-center"
+                    style={{ backgroundColor: colors.destructive, minWidth: 16, height: 16, paddingHorizontal: 3 }}
+                  >
+                    <Text className="text-white text-[10px] font-bold">
+                      {notificationCount}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            </Pressable>
+          </Link>
+        </View>
 
         <View className="bg-primary rounded-2xl p-5 mb-6">
           <View className="flex-row">
