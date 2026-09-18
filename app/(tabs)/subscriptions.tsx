@@ -72,11 +72,21 @@ const ListHeader = () => {
       </ThemedText>
 
       <View className="bg-primary rounded-2xl p-5 mb-5">
-        <Text className="text-sm text-white/70">Monthly total</Text>
-        <Text className="text-3xl font-extrabold text-white mt-1">
-          {format(totalMonthlySpend)}
-        </Text>
-        <Text className="text-xs text-white/70 mt-1">
+        <View className="flex-row">
+          <View className="flex-1">
+            <Text className="text-sm text-white/70">Monthly total</Text>
+            <Text className="text-3xl font-extrabold text-white mt-1">
+              {format(totalMonthlySpend)}
+            </Text>
+          </View>
+          <View className="flex-1">
+            <Text className="text-sm text-white/70">Yearly total</Text>
+            <Text className="text-3xl font-extrabold text-white mt-1">
+              {format(totalMonthlySpend * 12)}
+            </Text>
+          </View>
+        </View>
+        <Text className="text-xs text-white/70 mt-3">
           Across {activeSubscriptions.length} active subscriptions
         </Text>
       </View>

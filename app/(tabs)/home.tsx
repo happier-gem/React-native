@@ -27,10 +27,20 @@ const Home = () => {
         </ThemedText>
 
         <View className="bg-primary rounded-2xl p-5 mb-6">
-          <Text className="text-sm text-white/70">Monthly total</Text>
-          <Text className="text-3xl font-extrabold text-white mt-1">
-            {format(totalMonthlySpend)}
-          </Text>
+          <View className="flex-row">
+            <View className="flex-1">
+              <Text className="text-sm text-white/70">Monthly total</Text>
+              <Text className="text-3xl font-extrabold text-white mt-1">
+                {format(totalMonthlySpend)}
+              </Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm text-white/70">Yearly total</Text>
+              <Text className="text-3xl font-extrabold text-white mt-1">
+                {format(totalMonthlySpend * 12)}
+              </Text>
+            </View>
+          </View>
           <Link href="/subscriptions" className="text-white/80 text-sm mt-3">
             View all subscriptions →
           </Link>

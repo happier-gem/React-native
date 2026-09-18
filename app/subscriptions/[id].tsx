@@ -38,6 +38,16 @@ const EditSubscriptionModal = ({
   const [price, setPrice] = useState(subscription.price.toString());
   const [cycle, setCycle] = useState<BillingCycle>(subscription.cycle);
 
+  const handleCycleChange = (nextCycle: BillingCycle) => {
+    if (nextCycle === cycle) return;
+    const current = parseFloat(price);
+    if (!isNaN(current)) {
+      const converted = nextCycle === "yearly" ? current * 12 : current / 12;
+      setPrice((Math.round(converted * 100) / 100).toString());
+    }
+    setCycle(nextCycle);
+  };
+
   const handleSave = () => {
     const parsed = parseFloat(price);
     if (isNaN(parsed) || parsed < 0) {
@@ -85,7 +95,7 @@ const EditSubscriptionModal = ({
               return (
                 <Pressable
                   key={option}
-                  onPress={() => setCycle(option)}
+                  onPress={() => handleCycleChange(option)}
                   className="flex-1 items-center py-3 rounded-xl"
                   style={{ backgroundColor: selected ? accent : "transparent" }}
                 >
