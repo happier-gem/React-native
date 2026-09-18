@@ -1,6 +1,10 @@
-import React, { createContext, ReactNode, useContext, useMemo, useState } from "react";
+import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { useColorScheme, View } from "react-native";
 import { vars } from "nativewind";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const MODE_STORAGE_KEY = "theme:mode";
+const ACCENT_STORAGE_KEY = "theme:accent";
 
 export const accentPresets = [
     { name: "Coral", hex: "#ea7a53" },
@@ -59,6 +63,36 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const systemScheme = useColorScheme();
     const [accent, setAccent] = useState<string>(accentPresets[0].hex);
     const [mode, setMode] = useState<ThemeMode>("system");
+    const [hydrated, setHydrated] = useState(false);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const [savedMode, savedAccent] = await Promise.all([
+                    AsyncStorage.getItem(MODE_STORAGE_KEY),
+                    AsyncStorage.getItem(ACCENT_STORAGE_KEY),
+                ]);
+                if (savedMode === "light" || savedMode === "dark" || savedMode === "system") {
+                    setMode(savedMode);
+                }
+                if (savedAccent) {
+                    setAccent(savedAccent);
+                }
+            } finally {
+                setHydrated(true);
+            }
+        })();
+    }, []);
+
+    useEffect(() => {
+        if (!hydrated) return;
+        AsyncStorage.setItem(MODE_STORAGE_KEY, mode).catch(() => {});
+    }, [mode, hydrated]);
+
+    useEffect(() => {
+        if (!hydrated) return;
+        AsyncStorage.setItem(ACCENT_STORAGE_KEY, accent).catch(() => {});
+    }, [accent, hydrated]);
 
     const resolvedScheme: ResolvedScheme =
         mode === "system" ? (systemScheme === "dark" ? "dark" : "light") : mode;

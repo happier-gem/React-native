@@ -22,11 +22,13 @@ const SettingsRow = ({
   label,
   value,
   swatchColor,
+  icon,
   last,
 }: {
   label: string;
   value?: string;
   swatchColor?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
   last?: boolean;
 }) => {
   const { colors } = useAppTheme();
@@ -38,6 +40,14 @@ const SettingsRow = ({
     >
       <Text className="text-base text-foreground">{label}</Text>
       <View className="flex-row items-center">
+        {icon ? (
+          <Ionicons
+            name={icon}
+            size={18}
+            color={colors.mutedForeground}
+            style={{ marginRight: 8 }}
+          />
+        ) : null}
         {swatchColor ? (
           <View
             className="w-7 h-7 rounded-full mr-2"
@@ -250,7 +260,7 @@ const Settings = () => {
   const [accentPickerVisible, setAccentPickerVisible] = useState(false);
   const [appearanceVisible, setAppearanceVisible] = useState(false);
   const { account } = useAccount();
-  const { colors, accent, mode } = useAppTheme();
+  const { colors, accent, mode, resolvedScheme } = useAppTheme();
 
   const accentName =
     accentPresets.find((preset) => preset.hex === accent)?.name ?? "Custom";
@@ -302,7 +312,11 @@ const Settings = () => {
           </View>
           <SettingsRow label="Currency" value="USD" />
           <Pressable onPress={() => setAppearanceVisible(true)}>
-            <SettingsRow label="Appearance" value={modeLabel} />
+            <SettingsRow
+              label="Appearance"
+              value={modeLabel}
+              icon={resolvedScheme === "dark" ? "moon" : "sunny"}
+            />
           </Pressable>
           <Pressable onPress={() => setAccentPickerVisible(true)}>
             <SettingsRow
