@@ -139,18 +139,18 @@ const AccentPickerModal = ({
 
           <View className="flex-row flex-wrap" style={{ gap: 16 }}>
             {accentPresets.map((preset) => {
-              const selected = preset.value === accent;
+              const selected = preset.hex === accent;
               return (
                 <Pressable
-                  key={preset.value}
-                  onPress={() => setAccent(preset.value)}
+                  key={preset.hex}
+                  onPress={() => setAccent(preset.hex)}
                   className="items-center"
                   style={{ width: 64 }}
                 >
                   <View
                     className="w-16 h-16 rounded-full items-center justify-center"
                     style={{
-                      backgroundColor: preset.value,
+                      backgroundColor: preset.hex,
                       borderWidth: selected ? 4 : 2,
                       borderColor: selected ? colors.foreground : colors.card,
                       shadowColor: "#000",
@@ -253,7 +253,7 @@ const Settings = () => {
   const { colors, accent, mode } = useAppTheme();
 
   const accentName =
-    accentPresets.find((preset) => preset.value === accent)?.name ?? "Custom";
+    accentPresets.find((preset) => preset.hex === accent)?.name ?? "Custom";
   const modeLabel =
     themeModeOptions.find((option) => option.mode === mode)?.label ?? "System";
 
