@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useAppTheme } from '@/context/theme-context';
 import { AccountProvider } from '@/context/account-context';
+import { CurrencyProvider } from '@/context/currency-context';
 // import { ClerkProvider } from '@clerk/expo';
 // import { tokenCache } from '@clerk/expo/token-cache';
 
@@ -42,8 +43,10 @@ export default function RootLayout() {
     // <ClerkProvider publishableKey={publishableKey!} tokenCache={tokenCache}>
       <ThemeProvider>
         <AccountProvider>
-          <AppStatusBar />
-          <Stack screenOptions={{ headerShown: false }} />
+          <CurrencyProvider>
+            <AppStatusBar />
+            <Stack screenOptions={{ headerShown: false }} />
+          </CurrencyProvider>
         </AccountProvider>
       </ThemeProvider>
     // </ClerkProvider>

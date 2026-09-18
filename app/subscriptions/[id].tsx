@@ -1,14 +1,14 @@
-import { Alert, Image, Pressable, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import React from "react";
 import { Link, useLocalSearchParams } from "expo-router";
-import { icons } from "@/constants/icons";
 import {
-  formatCurrency,
   formatRenewalDate,
   monthlyEquivalent,
   subscriptions,
 } from "@/constants/data";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
+import { BrandIcon } from "@/components/brand-icon";
+import { useCurrency } from "@/context/currency-context";
 
 const BackLink = () => (
   <Link href="/subscriptions" asChild>
@@ -23,6 +23,7 @@ const BackLink = () => (
 const SubscriptionDetails = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const subscription = subscriptions.find((sub) => sub.id === id);
+  const { format } = useCurrency();
 
   if (!subscription) {
     return (
@@ -40,11 +41,9 @@ const SubscriptionDetails = () => {
       <BackLink />
 
       <View className="items-center mb-6">
-        <Image
-          source={icons[subscription.icon]}
-          resizeMode="contain"
-          className="w-16 h-16 rounded-2xl mb-4"
-        />
+        <View className="mb-4">
+          <BrandIcon icon={subscription.icon} brandColor={subscription.brandColor} size={64} />
+        </View>
         <ThemedText className="text-2xl font-extrabold">
           {subscription.name}
         </ThemedText>
@@ -57,14 +56,14 @@ const SubscriptionDetails = () => {
         <View className="flex-row items-center justify-between py-2">
           <ThemedText tone="muted">Price</ThemedText>
           <ThemedText className="font-semibold">
-            {formatCurrency(subscription.price)}{" "}
+            {format(subscription.price)}{" "}
             {subscription.cycle === "monthly" ? "/mo" : "/yr"}
           </ThemedText>
         </View>
         <View className="flex-row items-center justify-between py-2">
           <ThemedText tone="muted">Monthly equivalent</ThemedText>
           <ThemedText className="font-semibold">
-            {formatCurrency(monthlyEquivalent(subscription))}
+            {format(monthlyEquivalent(subscription))}
           </ThemedText>
         </View>
         <View className="flex-row items-center justify-between py-2">

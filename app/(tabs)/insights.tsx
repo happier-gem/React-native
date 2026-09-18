@@ -1,14 +1,14 @@
-import { Image, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import React from "react";
-import { icons } from "@/constants/icons";
 import {
-  formatCurrency,
   monthlyEquivalent,
   subscriptions,
   totalMonthlySpend,
 } from "@/constants/data";
 import { useAppTheme } from "@/context/theme-context";
+import { useCurrency } from "@/context/currency-context";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
+import { BrandIcon } from "@/components/brand-icon";
 
 const ranked = [...subscriptions].sort(
   (a, b) => monthlyEquivalent(b) - monthlyEquivalent(a)
@@ -17,6 +17,7 @@ const maxMonthly = Math.max(...ranked.map(monthlyEquivalent));
 
 const Insights = () => {
   const { colors, accent } = useAppTheme();
+  const { format } = useCurrency();
 
   return (
     <ThemedSafeAreaView>
@@ -33,13 +34,13 @@ const Insights = () => {
         <Card className="flex-1 rounded-2xl p-4">
           <ThemedText tone="muted" className="text-xs">Monthly</ThemedText>
           <ThemedText className="text-2xl font-extrabold mt-1">
-            {formatCurrency(totalMonthlySpend)}
+            {format(totalMonthlySpend)}
           </ThemedText>
         </Card>
         <Card className="flex-1 rounded-2xl p-4">
           <ThemedText tone="muted" className="text-xs">Yearly</ThemedText>
           <ThemedText className="text-2xl font-extrabold mt-1">
-            {formatCurrency(totalMonthlySpend * 12)}
+            {format(totalMonthlySpend * 12)}
           </ThemedText>
         </Card>
       </View>
@@ -54,16 +55,14 @@ const Insights = () => {
         return (
           <View key={sub.id} className="mb-4">
             <View className="flex-row items-center mb-1.5">
-              <Image
-                source={icons[sub.icon]}
-                resizeMode="contain"
-                className="w-5 h-5 mr-2"
-              />
+              <View className="mr-2">
+                <BrandIcon icon={sub.icon} brandColor={sub.brandColor} size={20} />
+              </View>
               <ThemedText className="flex-1 text-sm font-medium">
                 {sub.name}
               </ThemedText>
               <ThemedText className="text-sm font-semibold">
-                {formatCurrency(monthly)}
+                {format(monthly)}
                 <Text style={{ color: colors.mutedForeground }} className="text-xs">/mo</Text>
               </ThemedText>
             </View>

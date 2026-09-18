@@ -1,20 +1,22 @@
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import React from "react";
 import { Link } from "expo-router";
-import { icons } from "@/constants/icons";
 import {
-  formatCurrency,
   formatRenewalDate,
   subscriptions,
   totalMonthlySpend,
 } from "@/constants/data";
 import { ThemedSafeAreaView, ThemedText, Card } from "@/components/themed";
+import { BrandIcon } from "@/components/brand-icon";
+import { useCurrency } from "@/context/currency-context";
 
 const upcoming = [...subscriptions]
   .sort((a, b) => a.renewalDate.localeCompare(b.renewalDate))
   .slice(0, 3);
 
 const Home = () => {
+  const { format } = useCurrency();
+
   return (
     <ThemedSafeAreaView>
       <ScrollView
@@ -29,7 +31,7 @@ const Home = () => {
         <View className="bg-primary rounded-2xl p-5 mb-6">
           <Text className="text-sm text-white/70">Monthly total</Text>
           <Text className="text-3xl font-extrabold text-white mt-1">
-            {formatCurrency(totalMonthlySpend)}
+            {format(totalMonthlySpend)}
           </Text>
           <Link href="/subscriptions" className="text-white/80 text-sm mt-3">
             View all subscriptions →
@@ -48,11 +50,9 @@ const Home = () => {
           >
             <Pressable>
               <Card className="flex-row items-center rounded-2xl p-4 mb-3">
-                <Image
-                  source={icons[sub.icon]}
-                  resizeMode="contain"
-                  className="w-10 h-10 rounded-xl mr-4"
-                />
+                <View className="mr-4">
+                  <BrandIcon icon={sub.icon} brandColor={sub.brandColor} size={40} />
+                </View>
                 <View className="flex-1">
                   <ThemedText className="text-base font-semibold">
                     {sub.name}
@@ -62,7 +62,7 @@ const Home = () => {
                   </ThemedText>
                 </View>
                 <ThemedText className="text-base font-semibold">
-                  {formatCurrency(sub.price)}
+                  {format(sub.price)}
                 </ThemedText>
               </Card>
             </Pressable>

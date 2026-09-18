@@ -13,6 +13,7 @@ import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAccount } from "@/context/account-context";
 import { accentPresets, ThemeMode, useAppTheme } from "@/context/theme-context";
+import { currencyOptions, useCurrency } from "@/context/currency-context";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 
 const SettingsRow = ({
@@ -198,6 +199,69 @@ const AccentPickerModal = ({
   );
 };
 
+const CurrencyPickerModal = ({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) => {
+  const { colors, accent } = useAppTheme();
+  const { currency, setCurrencyCode } = useCurrency();
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View className="flex-1 justify-end bg-black/40">
+        <View style={{ backgroundColor: colors.background }} className="rounded-t-3xl p-6">
+          <ThemedText className="text-xl font-extrabold mb-5">
+            Currency
+          </ThemedText>
+
+          {currencyOptions.map((option) => {
+            const selected = option.code === currency.code;
+            return (
+              <Pressable
+                key={option.code}
+                onPress={() => setCurrencyCode(option.code)}
+                style={{ backgroundColor: colors.card }}
+                className="flex-row items-center justify-between rounded-2xl p-4 mb-3"
+              >
+                <View className="flex-row items-center">
+                  <View
+                    className="w-9 h-9 rounded-full items-center justify-center mr-3"
+                    style={{ backgroundColor: selected ? accent : colors.muted }}
+                  >
+                    <ThemedText
+                      tone={selected ? "white" : "muted"}
+                      className="text-sm font-bold"
+                    >
+                      {option.symbol}
+                    </ThemedText>
+                  </View>
+                  <View>
+                    <ThemedText className="text-base">{option.name}</ThemedText>
+                    <ThemedText tone="muted" className="text-xs">{option.code}</ThemedText>
+                  </View>
+                </View>
+                {selected ? (
+                  <Ionicons name="checkmark-circle" size={22} color={accent} />
+                ) : null}
+              </Pressable>
+            );
+          })}
+
+          <Pressable
+            onPress={onClose}
+            className="rounded-2xl bg-primary p-4 items-center mt-3"
+          >
+            <Text className="text-base font-semibold text-white">Done</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 const themeModeOptions: { mode: ThemeMode; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { mode: "light", label: "Light", icon: "sunny-outline" },
   { mode: "dark", label: "Dark", icon: "moon-outline" },
@@ -243,8 +307,10 @@ const Settings = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [editAccountVisible, setEditAccountVisible] = useState(false);
   const [accentPickerVisible, setAccentPickerVisible] = useState(false);
+  const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
   const { account } = useAccount();
   const { colors, accent } = useAppTheme();
+  const { currency } = useCurrency();
 
   const accentName =
     accentPresets.find((preset) => preset.hex === accent)?.name ?? "Custom";
@@ -297,7 +363,9 @@ const Settings = () => {
               thumbColor="#ffffff"
             />
           </View>
-          <SettingsRow label="Currency" value="USD" />
+          <Pressable onPress={() => setCurrencyPickerVisible(true)}>
+            <SettingsRow label="Currency" value={currency.code} />
+          </Pressable>
           <Pressable onPress={() => setAccentPickerVisible(true)}>
             <SettingsRow
               label="Accent Color"
@@ -331,6 +399,10 @@ const Settings = () => {
       <AccentPickerModal
         visible={accentPickerVisible}
         onClose={() => setAccentPickerVisible(false)}
+      />
+      <CurrencyPickerModal
+        visible={currencyPickerVisible}
+        onClose={() => setCurrencyPickerVisible(false)}
       />
     </ThemedSafeAreaView>
   );
