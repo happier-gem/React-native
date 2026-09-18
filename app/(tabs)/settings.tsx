@@ -204,58 +204,38 @@ const themeModeOptions: { mode: ThemeMode; label: string; icon: keyof typeof Ion
   { mode: "system", label: "System", icon: "phone-portrait-outline" },
 ];
 
-const AppearanceModal = ({
-  visible,
-  onClose,
-}: {
-  visible: boolean;
-  onClose: () => void;
-}) => {
+const ThemeSwitcher = () => {
   const { colors, accent, mode, setMode } = useAppTheme();
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/40">
-        <View style={{ backgroundColor: colors.background }} className="rounded-t-3xl p-6">
-          <ThemedText className="text-xl font-extrabold mb-5">
-            Appearance
-          </ThemedText>
-
-          {themeModeOptions.map((option) => {
-            const selected = option.mode === mode;
-            return (
-              <Pressable
-                key={option.mode}
-                onPress={() => setMode(option.mode)}
-                style={{ backgroundColor: colors.card }}
-                className="flex-row items-center justify-between rounded-2xl p-4 mb-3"
-              >
-                <View className="flex-row items-center">
-                  <Ionicons
-                    name={option.icon}
-                    size={20}
-                    color={selected ? accent : colors.mutedForeground}
-                  />
-                  <ThemedText className="text-base ml-3">
-                    {option.label}
-                  </ThemedText>
-                </View>
-                {selected ? (
-                  <Ionicons name="checkmark-circle" size={22} color={accent} />
-                ) : null}
-              </Pressable>
-            );
-          })}
-
+    <View
+      style={{ backgroundColor: colors.card }}
+      className="flex-row rounded-2xl p-1.5 mb-6"
+    >
+      {themeModeOptions.map((option) => {
+        const selected = option.mode === mode;
+        return (
           <Pressable
-            onPress={onClose}
-            className="rounded-2xl bg-primary p-4 items-center mt-3"
+            key={option.mode}
+            onPress={() => setMode(option.mode)}
+            className="flex-1 items-center py-3 rounded-xl"
+            style={{ backgroundColor: selected ? accent : "transparent" }}
           >
-            <Text className="text-base font-semibold text-white">Done</Text>
+            <Ionicons
+              name={option.icon}
+              size={20}
+              color={selected ? "#ffffff" : colors.mutedForeground}
+            />
+            <ThemedText
+              tone={selected ? "white" : "muted"}
+              className="text-xs font-semibold mt-1"
+            >
+              {option.label}
+            </ThemedText>
           </Pressable>
-        </View>
-      </View>
-    </Modal>
+        );
+      })}
+    </View>
   );
 };
 
@@ -263,14 +243,11 @@ const Settings = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [editAccountVisible, setEditAccountVisible] = useState(false);
   const [accentPickerVisible, setAccentPickerVisible] = useState(false);
-  const [appearanceVisible, setAppearanceVisible] = useState(false);
   const { account } = useAccount();
-  const { colors, accent, mode, resolvedScheme } = useAppTheme();
+  const { colors, accent } = useAppTheme();
 
   const accentName =
     accentPresets.find((preset) => preset.hex === accent)?.name ?? "Custom";
-  const modeLabel =
-    themeModeOptions.find((option) => option.mode === mode)?.label ?? "System";
 
   return (
     <ThemedSafeAreaView>
@@ -282,6 +259,8 @@ const Settings = () => {
         <ThemedText className="text-3xl font-extrabold mb-5">
           Settings
         </ThemedText>
+
+        <ThemeSwitcher />
 
         <Pressable onPress={() => setEditAccountVisible(true)}>
           <Card className="flex-row items-center rounded-2xl p-4 mb-6">
@@ -319,13 +298,6 @@ const Settings = () => {
             />
           </View>
           <SettingsRow label="Currency" value="USD" />
-          <Pressable onPress={() => setAppearanceVisible(true)}>
-            <SettingsRow
-              label="Appearance"
-              value={modeLabel}
-              icon={resolvedScheme === "dark" ? "moon" : "sunny"}
-            />
-          </Pressable>
           <Pressable onPress={() => setAccentPickerVisible(true)}>
             <SettingsRow
               label="Accent Color"
@@ -359,10 +331,6 @@ const Settings = () => {
       <AccentPickerModal
         visible={accentPickerVisible}
         onClose={() => setAccentPickerVisible(false)}
-      />
-      <AppearanceModal
-        visible={appearanceVisible}
-        onClose={() => setAppearanceVisible(false)}
       />
     </ThemedSafeAreaView>
   );
