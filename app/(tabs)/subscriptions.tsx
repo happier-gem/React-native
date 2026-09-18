@@ -44,28 +44,34 @@ const SubscriptionRow = ({ item }: { item: Subscription }) => (
   </Link>
 );
 
+const ListHeader = () => (
+  <View>
+    <ThemedText className="text-3xl font-extrabold mb-5">
+      Subscriptions
+    </ThemedText>
+
+    <View className="bg-primary rounded-2xl p-5 mb-5">
+      <Text className="text-sm text-white/70">Monthly total</Text>
+      <Text className="text-3xl font-extrabold text-white mt-1">
+        {formatCurrency(totalMonthlySpend)}
+      </Text>
+      <Text className="text-xs text-white/70 mt-1">
+        Across {subscriptions.length} subscriptions
+      </Text>
+    </View>
+  </View>
+);
+
 const Subscriptions = () => {
   return (
-    <ThemedSafeAreaView className="px-5 pt-5">
-      <ThemedText className="text-3xl font-extrabold mb-5">
-        Subscriptions
-      </ThemedText>
-
-      <View className="bg-primary rounded-2xl p-5 mb-5">
-        <Text className="text-sm text-white/70">Monthly total</Text>
-        <Text className="text-3xl font-extrabold text-white mt-1">
-          {formatCurrency(totalMonthlySpend)}
-        </Text>
-        <Text className="text-xs text-white/70 mt-1">
-          Across {subscriptions.length} subscriptions
-        </Text>
-      </View>
-
+    <ThemedSafeAreaView>
       <FlatList
         data={subscriptions}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <SubscriptionRow item={item} />}
+        ListHeaderComponent={ListHeader}
         showsVerticalScrollIndicator={false}
+        className="px-5 pt-5"
         contentContainerStyle={{ paddingBottom: 96 }}
       />
     </ThemedSafeAreaView>
