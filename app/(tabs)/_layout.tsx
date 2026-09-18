@@ -2,17 +2,21 @@ import {Tabs, Redirect} from "expo-router";
 import {tabs} from "@/constants/data";
 import {View} from "react-native";
 import { colors, components } from '@/constants/theme'
-import clsx from "clsx";
 import {Image} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppTheme } from "@/context/theme-context";
 // import { useAuth } from "@clerk/expo";
 
 const tabBar = components.tabBar;
 
 const TabIcon = ({focused, icon}: TabIconProps) => {
+    const { accent } = useAppTheme();
     return (
         <View className="tabs-icon">
-            <View className={clsx('tabs-pill', focused && 'tabs-active')}>
+            <View
+                className="tabs-pill"
+                style={{ backgroundColor: focused ? accent : "transparent" }}
+            >
                 <Image source={icon} resizeMode="contain" className="tabs-glyph"/>
             </View>
         </View>

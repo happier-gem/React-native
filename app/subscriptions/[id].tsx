@@ -1,8 +1,6 @@
 import { Alert, Image, Pressable, Text, View } from "react-native";
 import React from "react";
 import { Link, useLocalSearchParams } from "expo-router";
-import { styled } from "nativewind";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { icons } from "@/constants/icons";
 import {
   formatCurrency,
@@ -10,8 +8,17 @@ import {
   monthlyEquivalent,
   subscriptions,
 } from "@/constants/data";
+import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 
-const SafeAreaView = styled(RNSafeAreaView);
+const BackLink = () => (
+  <Link href="/subscriptions" asChild>
+    <Pressable className="mb-6">
+      <ThemedText tone="accent" className="font-semibold">
+        {"< Back"}
+      </ThemedText>
+    </Pressable>
+  </Link>
+);
 
 const SubscriptionDetails = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -19,22 +26,18 @@ const SubscriptionDetails = () => {
 
   if (!subscription) {
     return (
-      <SafeAreaView className="flex-1 bg-background p-5">
-        <Text className="text-lg font-semibold text-foreground mb-4">
+      <ThemedSafeAreaView className="p-5">
+        <ThemedText className="text-lg font-semibold mb-4">
           Subscription not found
-        </Text>
-        <Link href="/subscriptions" className="text-accent font-semibold">
-          Go back
-        </Link>
-      </SafeAreaView>
+        </ThemedText>
+        <BackLink />
+      </ThemedSafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background p-5">
-      <Link href="/subscriptions" className="text-accent font-semibold mb-6">
-        {"< Back"}
-      </Link>
+    <ThemedSafeAreaView className="p-5">
+      <BackLink />
 
       <View className="items-center mb-6">
         <Image
@@ -42,35 +45,35 @@ const SubscriptionDetails = () => {
           resizeMode="contain"
           className="w-16 h-16 rounded-2xl mb-4"
         />
-        <Text className="text-2xl font-extrabold text-foreground">
+        <ThemedText className="text-2xl font-extrabold">
           {subscription.name}
-        </Text>
-        <Text className="text-sm text-muted-foreground mt-1">
+        </ThemedText>
+        <ThemedText tone="muted" className="text-sm mt-1">
           {subscription.category}
-        </Text>
+        </ThemedText>
       </View>
 
-      <View className="bg-card rounded-2xl p-5 mb-4">
+      <Card className="rounded-2xl p-5 mb-4">
         <View className="flex-row items-center justify-between py-2">
-          <Text className="text-muted-foreground">Price</Text>
-          <Text className="font-semibold text-foreground">
+          <ThemedText tone="muted">Price</ThemedText>
+          <ThemedText className="font-semibold">
             {formatCurrency(subscription.price)}{" "}
             {subscription.cycle === "monthly" ? "/mo" : "/yr"}
-          </Text>
+          </ThemedText>
         </View>
         <View className="flex-row items-center justify-between py-2">
-          <Text className="text-muted-foreground">Monthly equivalent</Text>
-          <Text className="font-semibold text-foreground">
+          <ThemedText tone="muted">Monthly equivalent</ThemedText>
+          <ThemedText className="font-semibold">
             {formatCurrency(monthlyEquivalent(subscription))}
-          </Text>
+          </ThemedText>
         </View>
         <View className="flex-row items-center justify-between py-2">
-          <Text className="text-muted-foreground">Next renewal</Text>
-          <Text className="font-semibold text-foreground">
+          <ThemedText tone="muted">Next renewal</ThemedText>
+          <ThemedText className="font-semibold">
             {formatRenewalDate(subscription.renewalDate)}
-          </Text>
+          </ThemedText>
         </View>
-      </View>
+      </Card>
 
       <Pressable
         className="rounded-2xl border border-destructive p-4 items-center"
@@ -89,7 +92,7 @@ const SubscriptionDetails = () => {
           Cancel Subscription
         </Text>
       </Pressable>
-    </SafeAreaView>
+    </ThemedSafeAreaView>
   );
 };
 

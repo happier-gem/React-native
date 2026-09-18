@@ -1,12 +1,9 @@
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native"
 import React, { useState } from "react"
 import { Link, router } from "expo-router"
-import { styled } from "nativewind"
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { useAppTheme } from "@/context/theme-context"
-
-const SafeAreaView = styled(RNSafeAreaView)
+import { ThemedSafeAreaView, ThemedText } from "@/components/themed"
 
 const SignUp = () => {
     const { colors } = useAppTheme()
@@ -30,8 +27,10 @@ const SignUp = () => {
         router.replace("/home")
     }
 
+    const fieldWrapStyle = { backgroundColor: colors.card, borderColor: colors.border }
+
     return (
-        <SafeAreaView className="flex-1 bg-background">
+        <ThemedSafeAreaView>
             <KeyboardAvoidingView
                 className="flex-1"
                 behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -41,16 +40,16 @@ const SignUp = () => {
                     contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
                     keyboardShouldPersistTaps="handled"
                 >
-                    <Text className="text-3xl font-extrabold text-foreground mb-2">
+                    <ThemedText className="text-3xl font-extrabold mb-2">
                         Create account
-                    </Text>
-                    <Text className="text-base text-muted-foreground mb-8">
+                    </ThemedText>
+                    <ThemedText tone="muted" className="text-base mb-8">
                         Start tracking your subscriptions in one place.
-                    </Text>
+                    </ThemedText>
 
-                    <Text className="text-sm font-semibold text-foreground mb-2">
+                    <ThemedText className="text-sm font-semibold mb-2">
                         Email
-                    </Text>
+                    </ThemedText>
                     <TextInput
                         value={email}
                         onChangeText={setEmail}
@@ -59,13 +58,14 @@ const SignUp = () => {
                         autoCapitalize="none"
                         autoCorrect={false}
                         keyboardType="email-address"
-                        className="bg-card border border-border rounded-2xl px-4 py-3.5 text-foreground mb-4"
+                        style={{ ...fieldWrapStyle, color: colors.foreground }}
+                        className="border rounded-2xl px-4 py-3.5 mb-4"
                     />
 
-                    <Text className="text-sm font-semibold text-foreground mb-2">
+                    <ThemedText className="text-sm font-semibold mb-2">
                         Password
-                    </Text>
-                    <View className="flex-row items-center bg-card border border-border rounded-2xl mb-4">
+                    </ThemedText>
+                    <View style={fieldWrapStyle} className="flex-row items-center border rounded-2xl mb-4">
                         <TextInput
                             value={password}
                             onChangeText={setPassword}
@@ -74,7 +74,8 @@ const SignUp = () => {
                             secureTextEntry={!showPassword}
                             autoCapitalize="none"
                             autoCorrect={false}
-                            className="flex-1 px-4 py-3.5 text-foreground"
+                            style={{ color: colors.foreground }}
+                            className="flex-1 px-4 py-3.5"
                         />
                         <Pressable onPress={() => setShowPassword((v) => !v)} className="px-4">
                             <Ionicons
@@ -85,10 +86,10 @@ const SignUp = () => {
                         </Pressable>
                     </View>
 
-                    <Text className="text-sm font-semibold text-foreground mb-2">
+                    <ThemedText className="text-sm font-semibold mb-2">
                         Confirm password
-                    </Text>
-                    <View className="flex-row items-center bg-card border border-border rounded-2xl mb-2">
+                    </ThemedText>
+                    <View style={fieldWrapStyle} className="flex-row items-center border rounded-2xl mb-2">
                         <TextInput
                             value={confirmPassword}
                             onChangeText={setConfirmPassword}
@@ -97,7 +98,8 @@ const SignUp = () => {
                             secureTextEntry={!showConfirmPassword}
                             autoCapitalize="none"
                             autoCorrect={false}
-                            className="flex-1 px-4 py-3.5 text-foreground"
+                            style={{ color: colors.foreground }}
+                            className="flex-1 px-4 py-3.5"
                         />
                         <Pressable onPress={() => setShowConfirmPassword((v) => !v)} className="px-4">
                             <Ionicons
@@ -121,14 +123,18 @@ const SignUp = () => {
                     </Pressable>
 
                     <View className="flex-row justify-center mt-6">
-                        <Text className="text-muted-foreground">Already have an account? </Text>
-                        <Link href="/(auth)/sign-in" className="font-semibold text-accent">
-                            Sign In
+                        <ThemedText tone="muted">Already have an account? </ThemedText>
+                        <Link href="/(auth)/sign-in" asChild>
+                            <Pressable>
+                                <ThemedText tone="accent" className="font-semibold">
+                                    Sign In
+                                </ThemedText>
+                            </Pressable>
                         </Link>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     )
 }
 export default SignUp

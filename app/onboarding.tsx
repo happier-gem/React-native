@@ -10,11 +10,9 @@ import {
 } from "react-native"
 import React, { useRef, useState } from "react"
 import { Link, router } from "expo-router"
-import { styled } from "nativewind"
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context"
 import { icons } from "@/constants/icons"
-
-const SafeAreaView = styled(RNSafeAreaView)
+import { useAppTheme } from "@/context/theme-context"
+import { ThemedSafeAreaView, ThemedText } from "@/components/themed"
 
 const { width } = Dimensions.get("window")
 
@@ -40,6 +38,7 @@ const slides = [
 ]
 
 const Onboarding = () => {
+    const { colors, accent } = useAppTheme()
     const scrollRef = useRef<ScrollView>(null)
     const [index, setIndex] = useState(0)
     const isLastSlide = index === slides.length - 1
@@ -57,10 +56,14 @@ const Onboarding = () => {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-background">
+        <ThemedSafeAreaView>
             <View className="flex-row justify-end px-5 pt-2">
-                <Link href="/home" className="text-sm font-semibold text-muted-foreground p-2">
-                    Skip
+                <Link href="/home" asChild>
+                    <Pressable className="p-2">
+                        <ThemedText tone="muted" className="text-sm font-semibold">
+                            Skip
+                        </ThemedText>
+                    </Pressable>
                 </Link>
             </View>
 
@@ -71,7 +74,7 @@ const Onboarding = () => {
                 showsHorizontalScrollIndicator={false}
                 onMomentumScrollEnd={handleMomentumScrollEnd}
             >
-                {slides.map((slide, i) => (
+                {slides.map((slide) => (
                     <View
                         key={slide.title}
                         style={{ width }}
@@ -84,12 +87,12 @@ const Onboarding = () => {
                                 className="w-12 h-12"
                             />
                         </View>
-                        <Text className="text-2xl font-extrabold text-foreground text-center mb-3">
+                        <ThemedText className="text-2xl font-extrabold text-center mb-3">
                             {slide.title}
-                        </Text>
-                        <Text className="text-base text-muted-foreground text-center leading-6">
+                        </ThemedText>
+                        <ThemedText tone="muted" className="text-base text-center leading-6">
                             {slide.description}
-                        </Text>
+                        </ThemedText>
                     </View>
                 ))}
             </ScrollView>
@@ -99,9 +102,11 @@ const Onboarding = () => {
                     <Pressable
                         key={slide.title}
                         onPress={() => goToSlide(i)}
-                        className={`h-2 rounded-full ${
-                            i === index ? "w-6 bg-accent" : "w-2 bg-border"
-                        }`}
+                        className="h-2 rounded-full"
+                        style={{
+                            width: i === index ? 24 : 8,
+                            backgroundColor: i === index ? accent : colors.border,
+                        }}
                     />
                 ))}
             </View>
@@ -118,7 +123,7 @@ const Onboarding = () => {
                     </Text>
                 </Pressable>
             </View>
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     )
 }
 export default Onboarding

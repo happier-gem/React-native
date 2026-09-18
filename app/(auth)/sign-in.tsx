@@ -1,12 +1,9 @@
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native"
 import React, { useState } from "react"
 import { Link, router } from "expo-router"
-import { styled } from "nativewind"
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { useAppTheme } from "@/context/theme-context"
-
-const SafeAreaView = styled(RNSafeAreaView)
+import { ThemedSafeAreaView, ThemedText } from "@/components/themed"
 
 const SignIn = () => {
     const { colors } = useAppTheme()
@@ -24,8 +21,14 @@ const SignIn = () => {
         router.replace("/home")
     }
 
+    const inputStyle = {
+        backgroundColor: colors.card,
+        borderColor: colors.border,
+        color: colors.foreground,
+    }
+
     return (
-        <SafeAreaView className="flex-1 bg-background">
+        <ThemedSafeAreaView>
             <KeyboardAvoidingView
                 className="flex-1"
                 behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -35,16 +38,16 @@ const SignIn = () => {
                     contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
                     keyboardShouldPersistTaps="handled"
                 >
-                    <Text className="text-3xl font-extrabold text-foreground mb-2">
+                    <ThemedText className="text-3xl font-extrabold mb-2">
                         Welcome back
-                    </Text>
-                    <Text className="text-base text-muted-foreground mb-8">
+                    </ThemedText>
+                    <ThemedText tone="muted" className="text-base mb-8">
                         Sign in to manage your subscriptions.
-                    </Text>
+                    </ThemedText>
 
-                    <Text className="text-sm font-semibold text-foreground mb-2">
+                    <ThemedText className="text-sm font-semibold mb-2">
                         Email
-                    </Text>
+                    </ThemedText>
                     <TextInput
                         value={email}
                         onChangeText={setEmail}
@@ -53,13 +56,17 @@ const SignIn = () => {
                         autoCapitalize="none"
                         autoCorrect={false}
                         keyboardType="email-address"
-                        className="bg-card border border-border rounded-2xl px-4 py-3.5 text-foreground mb-4"
+                        style={inputStyle}
+                        className="border rounded-2xl px-4 py-3.5 mb-4"
                     />
 
-                    <Text className="text-sm font-semibold text-foreground mb-2">
+                    <ThemedText className="text-sm font-semibold mb-2">
                         Password
-                    </Text>
-                    <View className="flex-row items-center bg-card border border-border rounded-2xl mb-2">
+                    </ThemedText>
+                    <View
+                        style={{ backgroundColor: colors.card, borderColor: colors.border }}
+                        className="flex-row items-center border rounded-2xl mb-2"
+                    >
                         <TextInput
                             value={password}
                             onChangeText={setPassword}
@@ -68,7 +75,8 @@ const SignIn = () => {
                             secureTextEntry={!showPassword}
                             autoCapitalize="none"
                             autoCorrect={false}
-                            className="flex-1 px-4 py-3.5 text-foreground"
+                            style={{ color: colors.foreground }}
+                            className="flex-1 px-4 py-3.5"
                         />
                         <Pressable onPress={() => setShowPassword((v) => !v)} className="px-4">
                             <Ionicons
@@ -92,14 +100,18 @@ const SignIn = () => {
                     </Pressable>
 
                     <View className="flex-row justify-center mt-6">
-                        <Text className="text-muted-foreground">Don't have an account? </Text>
-                        <Link href="/(auth)/sign-up" className="font-semibold text-accent">
-                            Create Account
+                        <ThemedText tone="muted">Don't have an account? </ThemedText>
+                        <Link href="/(auth)/sign-up" asChild>
+                            <Pressable>
+                                <ThemedText tone="accent" className="font-semibold">
+                                    Create Account
+                                </ThemedText>
+                            </Pressable>
                         </Link>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     )
 }
 export default SignIn

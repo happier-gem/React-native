@@ -10,13 +10,10 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 import { Link } from "expo-router";
-import { styled } from "nativewind";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAccount } from "@/context/account-context";
 import { accentPresets, ThemeMode, useAppTheme } from "@/context/theme-context";
-
-const SafeAreaView = styled(RNSafeAreaView);
+import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 
 const SettingsRow = ({
   label,
@@ -34,11 +31,10 @@ const SettingsRow = ({
   const { colors } = useAppTheme();
   return (
     <View
-      className={`flex-row items-center justify-between py-4 ${
-        last ? "" : "border-b border-border"
-      }`}
+      style={{ borderBottomWidth: last ? 0 : 1, borderBottomColor: colors.border }}
+      className="flex-row items-center justify-between py-4"
     >
-      <Text className="text-base text-foreground">{label}</Text>
+      <ThemedText className="text-base">{label}</ThemedText>
       <View className="flex-row items-center">
         {icon ? (
           <Ionicons
@@ -59,9 +55,9 @@ const SettingsRow = ({
           />
         ) : null}
         {value ? (
-          <Text className="text-sm text-muted-foreground mr-2">{value}</Text>
+          <ThemedText tone="muted" className="text-sm mr-2">{value}</ThemedText>
         ) : null}
-        <Text className="text-muted-foreground">{">"}</Text>
+        <ThemedText tone="muted">{">"}</ThemedText>
       </View>
     </View>
   );
@@ -84,24 +80,31 @@ const EditAccountModal = ({
     onClose();
   };
 
+  const fieldStyle = {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    color: colors.foreground,
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-black/40">
-        <View className="bg-background rounded-t-3xl p-6">
-          <Text className="text-xl font-extrabold text-foreground mb-5">
+        <View style={{ backgroundColor: colors.background }} className="rounded-t-3xl p-6">
+          <ThemedText className="text-xl font-extrabold mb-5">
             Edit Account
-          </Text>
+          </ThemedText>
 
-          <Text className="text-sm font-semibold text-foreground mb-2">Name</Text>
+          <ThemedText className="text-sm font-semibold mb-2">Name</ThemedText>
           <TextInput
             value={name}
             onChangeText={setName}
             placeholder="Your name"
             placeholderTextColor={colors.mutedForeground}
-            className="bg-card border border-border rounded-2xl px-4 py-3.5 text-foreground mb-4"
+            style={fieldStyle}
+            className="border rounded-2xl px-4 py-3.5 mb-4"
           />
 
-          <Text className="text-sm font-semibold text-foreground mb-2">Email</Text>
+          <ThemedText className="text-sm font-semibold mb-2">Email</ThemedText>
           <TextInput
             value={email}
             onChangeText={setEmail}
@@ -110,7 +113,8 @@ const EditAccountModal = ({
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
-            className="bg-card border border-border rounded-2xl px-4 py-3.5 text-foreground mb-6"
+            style={fieldStyle}
+            className="border rounded-2xl px-4 py-3.5 mb-6"
           />
 
           <Pressable
@@ -120,9 +124,9 @@ const EditAccountModal = ({
             <Text className="text-base font-semibold text-white">Save</Text>
           </Pressable>
           <Pressable onPress={onClose} className="p-3 items-center">
-            <Text className="text-base font-semibold text-muted-foreground">
+            <ThemedText tone="muted" className="text-base font-semibold">
               Cancel
-            </Text>
+            </ThemedText>
           </Pressable>
         </View>
       </View>
@@ -142,10 +146,10 @@ const AccentPickerModal = ({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-black/40">
-        <View className="bg-background rounded-t-3xl p-6">
-          <Text className="text-xl font-extrabold text-foreground mb-5">
+        <View style={{ backgroundColor: colors.background }} className="rounded-t-3xl p-6">
+          <ThemedText className="text-xl font-extrabold mb-5">
             Accent Color
-          </Text>
+          </ThemedText>
 
           <View className="flex-row flex-wrap" style={{ gap: 16 }}>
             {accentPresets.map((preset) => {
@@ -174,9 +178,9 @@ const AccentPickerModal = ({
                       <Ionicons name="checkmark" size={26} color="#ffffff" />
                     ) : null}
                   </View>
-                  <Text className="text-xs text-muted-foreground mt-2">
+                  <ThemedText tone="muted" className="text-xs mt-2">
                     {preset.name}
-                  </Text>
+                  </ThemedText>
                 </Pressable>
               );
             })}
@@ -212,10 +216,10 @@ const AppearanceModal = ({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-black/40">
-        <View className="bg-background rounded-t-3xl p-6">
-          <Text className="text-xl font-extrabold text-foreground mb-5">
+        <View style={{ backgroundColor: colors.background }} className="rounded-t-3xl p-6">
+          <ThemedText className="text-xl font-extrabold mb-5">
             Appearance
-          </Text>
+          </ThemedText>
 
           {themeModeOptions.map((option) => {
             const selected = option.mode === mode;
@@ -223,7 +227,8 @@ const AppearanceModal = ({
               <Pressable
                 key={option.mode}
                 onPress={() => setMode(option.mode)}
-                className="flex-row items-center justify-between bg-card rounded-2xl p-4 mb-3"
+                style={{ backgroundColor: colors.card }}
+                className="flex-row items-center justify-between rounded-2xl p-4 mb-3"
               >
                 <View className="flex-row items-center">
                   <Ionicons
@@ -231,9 +236,9 @@ const AppearanceModal = ({
                     size={20}
                     color={selected ? accent : colors.mutedForeground}
                   />
-                  <Text className="text-base text-foreground ml-3">
+                  <ThemedText className="text-base ml-3">
                     {option.label}
-                  </Text>
+                  </ThemedText>
                 </View>
                 {selected ? (
                   <Ionicons name="checkmark-circle" size={22} color={accent} />
@@ -268,41 +273,44 @@ const Settings = () => {
     themeModeOptions.find((option) => option.mode === mode)?.label ?? "System";
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <ThemedSafeAreaView>
       <ScrollView
         className="px-5 pt-5"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 96 }}
       >
-        <Text className="text-3xl font-extrabold text-foreground mb-5">
+        <ThemedText className="text-3xl font-extrabold mb-5">
           Settings
-        </Text>
+        </ThemedText>
 
         <Pressable onPress={() => setEditAccountVisible(true)}>
-          <View className="flex-row items-center bg-card rounded-2xl p-4 mb-6">
+          <Card className="flex-row items-center rounded-2xl p-4 mb-6">
             <Image
               source={require("@/assets/images/avatar.png")}
               resizeMode="cover"
               className="w-14 h-14 rounded-full mr-4"
             />
             <View className="flex-1">
-              <Text className="text-base font-semibold text-foreground">
+              <ThemedText className="text-base font-semibold">
                 {account.name}
-              </Text>
-              <Text className="text-sm text-muted-foreground mt-0.5">
+              </ThemedText>
+              <ThemedText tone="muted" className="text-sm mt-0.5">
                 {account.email}
-              </Text>
+              </ThemedText>
             </View>
-            <Text className="text-muted-foreground">{">"}</Text>
-          </View>
+            <ThemedText tone="muted">{">"}</ThemedText>
+          </Card>
         </Pressable>
 
-        <Text className="text-sm font-semibold text-muted-foreground mb-2">
+        <ThemedText tone="muted" className="text-sm font-semibold mb-2">
           Preferences
-        </Text>
-        <View className="bg-card rounded-2xl px-4 mb-6">
-          <View className="flex-row items-center justify-between py-4 border-b border-border">
-            <Text className="text-base text-foreground">Notifications</Text>
+        </ThemedText>
+        <Card className="rounded-2xl px-4 mb-6">
+          <View
+            style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
+            className="flex-row items-center justify-between py-4"
+          >
+            <ThemedText className="text-base">Notifications</ThemedText>
             <Switch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
@@ -326,14 +334,14 @@ const Settings = () => {
               last
             />
           </Pressable>
-        </View>
+        </Card>
 
-        <Text className="text-sm font-semibold text-muted-foreground mb-2">
+        <ThemedText tone="muted" className="text-sm font-semibold mb-2">
           About
-        </Text>
-        <View className="bg-card rounded-2xl px-4 mb-6">
+        </ThemedText>
+        <Card className="rounded-2xl px-4 mb-6">
           <SettingsRow label="Version" value="1.0.0" last />
-        </View>
+        </Card>
 
         <Link href="/(auth)/sign-in" asChild>
           <Pressable className="rounded-2xl border border-destructive p-4 items-center">
@@ -356,7 +364,7 @@ const Settings = () => {
         visible={appearanceVisible}
         onClose={() => setAppearanceVisible(false)}
       />
-    </SafeAreaView>
+    </ThemedSafeAreaView>
   );
 };
 

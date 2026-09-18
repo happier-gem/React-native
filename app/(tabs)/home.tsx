@@ -1,8 +1,6 @@
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import React from "react";
 import { Link } from "expo-router";
-import { styled } from "nativewind";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { icons } from "@/constants/icons";
 import {
   formatCurrency,
@@ -10,8 +8,7 @@ import {
   subscriptions,
   totalMonthlySpend,
 } from "@/constants/data";
-
-const SafeAreaView = styled(RNSafeAreaView);
+import { ThemedSafeAreaView, ThemedText, Card } from "@/components/themed";
 
 const upcoming = [...subscriptions]
   .sort((a, b) => a.renewalDate.localeCompare(b.renewalDate))
@@ -19,15 +16,15 @@ const upcoming = [...subscriptions]
 
 const Home = () => {
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <ThemedSafeAreaView>
       <ScrollView
         className="px-5 pt-5"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 96 }}
       >
-        <Text className="text-3xl font-extrabold text-foreground mb-5">
+        <ThemedText className="text-3xl font-extrabold mb-5">
           Home
-        </Text>
+        </ThemedText>
 
         <View className="bg-primary rounded-2xl p-5 mb-6">
           <Text className="text-sm text-white/70">Monthly total</Text>
@@ -39,9 +36,9 @@ const Home = () => {
           </Link>
         </View>
 
-        <Text className="text-sm font-semibold text-muted-foreground mb-3">
+        <ThemedText tone="muted" className="text-sm font-semibold mb-3">
           Upcoming renewals
-        </Text>
+        </ThemedText>
 
         {upcoming.map((sub) => (
           <Link
@@ -49,28 +46,30 @@ const Home = () => {
             href={{ pathname: "/subscriptions/[id]", params: { id: sub.id } }}
             asChild
           >
-            <Pressable className="flex-row items-center bg-card rounded-2xl p-4 mb-3">
-              <Image
-                source={icons[sub.icon]}
-                resizeMode="contain"
-                className="w-10 h-10 rounded-xl mr-4"
-              />
-              <View className="flex-1">
-                <Text className="text-base font-semibold text-foreground">
-                  {sub.name}
-                </Text>
-                <Text className="text-xs text-muted-foreground mt-0.5">
-                  Renews {formatRenewalDate(sub.renewalDate)}
-                </Text>
-              </View>
-              <Text className="text-base font-semibold text-foreground">
-                {formatCurrency(sub.price)}
-              </Text>
+            <Pressable>
+              <Card className="flex-row items-center rounded-2xl p-4 mb-3">
+                <Image
+                  source={icons[sub.icon]}
+                  resizeMode="contain"
+                  className="w-10 h-10 rounded-xl mr-4"
+                />
+                <View className="flex-1">
+                  <ThemedText className="text-base font-semibold">
+                    {sub.name}
+                  </ThemedText>
+                  <ThemedText tone="muted" className="text-xs mt-0.5">
+                    Renews {formatRenewalDate(sub.renewalDate)}
+                  </ThemedText>
+                </View>
+                <ThemedText className="text-base font-semibold">
+                  {formatCurrency(sub.price)}
+                </ThemedText>
+              </Card>
             </Pressable>
           </Link>
         ))}
       </ScrollView>
-    </SafeAreaView>
+    </ThemedSafeAreaView>
   );
 };
 
