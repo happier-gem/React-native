@@ -1,7 +1,6 @@
 import { FlatList, Pressable, Text, TextInput, View } from "react-native";
 import React, { useMemo, useState } from "react";
 import { Link } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { formatRenewalDate } from "@/constants/data";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 import { BrandIcon } from "@/components/brand-icon";

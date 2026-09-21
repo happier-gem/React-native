@@ -1,8 +1,7 @@
 import { Alert, Pressable, ScrollView, TextInput, View } from "react-native";
 import React, { useMemo, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, ThemedText } from "@/components/themed";
-import { ThemedSafeAreaView } from "@/components/themed";
+import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 import { useAppTheme } from "@/context/theme-context";
 import { useAccount } from "@/context/account-context";
 import { AdminHeader } from "@/components/admin-header";

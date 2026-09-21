@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, View } from "react-native";
-import React, { useMemo } from "react";
+import React from "react";
 import { Link } from "expo-router";
 import { formatDaysUntil } from "@/constants/data";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/admin-ui";
 
 const AdminNotifications = () => {
     const { format } = useCurrency();
-    const { colors, accent } = useAppTheme();
+    const { accent } = useAppTheme();
     const { renewingSoon, canceled, hasAlerts } = useSubscriptionAlerts();
     const { isRead, markRead, markAllRead } = useReadNotifications();
 

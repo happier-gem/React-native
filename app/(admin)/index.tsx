@@ -113,7 +113,7 @@ const AdminOverview = () => {
                         </View>
                     </View>
                     <ThemedText tone="muted" className="text-xs mt-3">
-                        A real signup feed needs a backend with Clerk's Backend API — this app only knows about the current
+                        A real signup feed needs a backend with Clerk&apos;s Backend API — this app only knows about the current
                         signed-in account.
                     </ThemedText>
                 </Card>
