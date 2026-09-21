@@ -9,6 +9,8 @@ import { ThemedSafeAreaView, ThemedText } from "@/components/themed"
 const SignUp = () => {
     const { colors } = useAppTheme()
     const { signUp, fetchStatus } = useSignUp()
+    const [firstName, setFirstName] = useState("")
+    const [lastName, setLastName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
@@ -30,7 +32,7 @@ const SignUp = () => {
     }
 
     const handleSignUp = async () => {
-        if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
+        if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
             setError("Fill in every field to continue.")
             return
         }
@@ -43,6 +45,8 @@ const SignUp = () => {
         const { error: passwordError } = await signUp.password({
             emailAddress: email.trim(),
             password,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
         })
         if (passwordError) {
             setError(passwordError.longMessage ?? passwordError.message)
@@ -126,6 +130,37 @@ const SignUp = () => {
                         </>
                     ) : (
                         <>
+                            <View className="flex-row" style={{ gap: 12 }}>
+                                <View className="flex-1">
+                                    <ThemedText className="text-sm font-semibold mb-2">
+                                        First name
+                                    </ThemedText>
+                                    <TextInput
+                                        value={firstName}
+                                        onChangeText={setFirstName}
+                                        placeholder="Jane"
+                                        placeholderTextColor={colors.mutedForeground}
+                                        autoCapitalize="words"
+                                        style={{ ...fieldWrapStyle, color: colors.foreground }}
+                                        className="border rounded-2xl pl-5 pr-4 py-3.5 mb-4"
+                                    />
+                                </View>
+                                <View className="flex-1">
+                                    <ThemedText className="text-sm font-semibold mb-2">
+                                        Last name
+                                    </ThemedText>
+                                    <TextInput
+                                        value={lastName}
+                                        onChangeText={setLastName}
+                                        placeholder="Doe"
+                                        placeholderTextColor={colors.mutedForeground}
+                                        autoCapitalize="words"
+                                        style={{ ...fieldWrapStyle, color: colors.foreground }}
+                                        className="border rounded-2xl pl-5 pr-4 py-3.5 mb-4"
+                                    />
+                                </View>
+                            </View>
+
                             <ThemedText className="text-sm font-semibold mb-2">
                                 Email
                             </ThemedText>
