@@ -1,7 +1,7 @@
 import { ScrollView, Text, View } from "react-native";
 import React from "react";
 import { useAppTheme } from "@/context/theme-context";
-import { useCurrency } from "@/context/currency-context";
+import { formatMoney } from "@/constants/data";
 import { monthlyEquivalent, useSubscriptions } from "@/context/subscriptions-context";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 import { BrandIcon } from "@/components/brand-icon";
@@ -13,8 +13,7 @@ const DEMO_ACTIVE_USERS = 94;
 
 const AdminAnalytics = () => {
     const { colors, accent } = useAppTheme();
-    const { format } = useCurrency();
-    const { subscriptions, activeSubscriptions, totalMonthlySpend } = useSubscriptions();
+    const { subscriptions, activeSubscriptions, spendByCurrency } = useSubscriptions();
 
     const canceledCount = subscriptions.length - activeSubscriptions.length;
     const activePct = subscriptions.length > 0 ? (activeSubscriptions.length / subscriptions.length) * 100 : 0;
@@ -40,16 +39,24 @@ const AdminAnalytics = () => {
                     </View>
                 </View>
 
-                <View className="flex-row mb-6" style={{ gap: 12 }}>
-                    <Card className="flex-1 rounded-2xl p-4">
-                        <ThemedText tone="muted" className="text-xs">Monthly spend</ThemedText>
-                        <ThemedText className="text-2xl font-extrabold mt-1">{format(totalMonthlySpend)}</ThemedText>
-                    </Card>
-                    <Card className="flex-1 rounded-2xl p-4">
-                        <ThemedText tone="muted" className="text-xs">Yearly spend</ThemedText>
-                        <ThemedText className="text-2xl font-extrabold mt-1">{format(totalMonthlySpend * 12)}</ThemedText>
-                    </Card>
-                </View>
+                {spendByCurrency.length === 0 ? (
+                    <ThemedText tone="muted" className="text-sm mb-6">No active subscriptions to calculate spend from yet.</ThemedText>
+                ) : (
+                    <View className="mb-6" style={{ gap: 12 }}>
+                        {spendByCurrency.map((row) => (
+                            <View key={row.currency} className="flex-row" style={{ gap: 12 }}>
+                                <Card className="flex-1 rounded-2xl p-4">
+                                    <ThemedText tone="muted" className="text-xs">{row.currency} monthly</ThemedText>
+                                    <ThemedText className="text-2xl font-extrabold mt-1">{formatMoney(row.monthly, row.currency)}</ThemedText>
+                                </Card>
+                                <Card className="flex-1 rounded-2xl p-4">
+                                    <ThemedText tone="muted" className="text-xs">{row.currency} yearly</ThemedText>
+                                    <ThemedText className="text-2xl font-extrabold mt-1">{formatMoney(row.yearly, row.currency)}</ThemedText>
+                                </Card>
+                            </View>
+                        ))}
+                    </View>
+                )}
 
                 <ThemedText tone="muted" className="text-sm font-semibold mb-3">
                     Subscription status breakdown
@@ -96,7 +103,7 @@ const AdminAnalytics = () => {
                                         </View>
                                         <ThemedText className="flex-1 text-sm font-medium">{sub.name}</ThemedText>
                                         <ThemedText className="text-sm font-semibold">
-                                            {format(monthly)}
+                                            {formatMoney(monthly, sub.currency)}
                                             <Text style={{ color: colors.mutedForeground }} className="text-xs">/mo</Text>
                                         </ThemedText>
                                     </View>

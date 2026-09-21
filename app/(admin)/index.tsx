@@ -1,10 +1,9 @@
 import { Pressable, ScrollView, View } from "react-native";
 import React from "react";
 import { Link } from "expo-router";
-import { formatRenewalDate } from "@/constants/data";
+import { formatMoney, formatRenewalDate } from "@/constants/data";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 import { BrandIcon } from "@/components/brand-icon";
-import { useCurrency } from "@/context/currency-context";
 import { useAccount } from "@/context/account-context";
 import { useSubscriptions } from "@/context/subscriptions-context";
 import { AdminHeader } from "@/components/admin-header";
@@ -16,9 +15,8 @@ const DEMO_TOTAL_USERS = 128;
 const DEMO_ACTIVE_USERS = 94;
 
 const AdminOverview = () => {
-    const { format } = useCurrency();
     const { account } = useAccount();
-    const { subscriptions, activeSubscriptions, totalMonthlySpend } = useSubscriptions();
+    const { subscriptions, activeSubscriptions, spendByCurrency } = useSubscriptions();
 
     const canceledCount = subscriptions.length - activeSubscriptions.length;
 
@@ -60,14 +58,30 @@ const AdminOverview = () => {
                         <StatCard label="Canceled subscriptions" value={String(canceledCount)} icon="close-circle-outline" />
                     </View>
                     <View className="flex-1">
-                        <StatCard
-                            label="Est. monthly revenue"
-                            value={format(totalMonthlySpend)}
-                            icon="cash-outline"
-                            caption="This account's spend"
-                        />
+                        {spendByCurrency.length <= 1 ? (
+                            <StatCard
+                                label="Est. monthly revenue"
+                                value={spendByCurrency.length === 0 ? "—" : formatMoney(spendByCurrency[0].monthly, spendByCurrency[0].currency)}
+                                icon="cash-outline"
+                                caption="This account's spend"
+                            />
+                        ) : null}
                     </View>
                 </View>
+                {spendByCurrency.length > 1 ? (
+                    <View className="flex-row flex-wrap mb-6" style={{ gap: 12 }}>
+                        {spendByCurrency.map((row) => (
+                            <View key={row.currency} style={{ minWidth: 150 }} className="flex-1">
+                                <StatCard
+                                    label={`${row.currency} monthly revenue`}
+                                    value={formatMoney(row.monthly, row.currency)}
+                                    icon="cash-outline"
+                                    caption="This account's spend"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                ) : null}
 
                 <ThemedText tone="muted" className="text-sm font-semibold mb-3">
                     Upcoming renewals
@@ -91,7 +105,7 @@ const AdminOverview = () => {
                                                 Renews {formatRenewalDate(sub.renewalDate)}
                                             </ThemedText>
                                         </View>
-                                        <ThemedText className="text-base font-semibold">{format(sub.price)}</ThemedText>
+                                        <ThemedText className="text-base font-semibold">{formatMoney(sub.price, sub.currency)}</ThemedText>
                                     </Card>
                                 </Pressable>
                             </Link>

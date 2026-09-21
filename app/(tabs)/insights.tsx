@@ -1,20 +1,29 @@
-import { ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import React from "react";
 import { useAppTheme } from "@/context/theme-context";
-import { useCurrency } from "@/context/currency-context";
+import { formatMoney } from "@/constants/data";
 import { monthlyEquivalent, useSubscriptions } from "@/context/subscriptions-context";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 import { BrandIcon } from "@/components/brand-icon";
 
 const Insights = () => {
   const { colors, accent } = useAppTheme();
-  const { format } = useCurrency();
-  const { activeSubscriptions, totalMonthlySpend } = useSubscriptions();
+  const { activeSubscriptions, spendByCurrency, loading, subscriptions } = useSubscriptions();
 
   const ranked = [...activeSubscriptions].sort(
     (a, b) => monthlyEquivalent(b) - monthlyEquivalent(a)
   );
   const maxMonthly = Math.max(0, ...ranked.map(monthlyEquivalent));
+
+  if (loading && subscriptions.length === 0) {
+    return (
+      <ThemedSafeAreaView>
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator color={colors.foreground} />
+        </View>
+      </ThemedSafeAreaView>
+    );
+  }
 
   return (
     <ThemedSafeAreaView>
@@ -27,22 +36,30 @@ const Insights = () => {
         Insights
       </ThemedText>
 
-      <View className="flex-row mb-6" style={{ gap: 12 }}>
-        <Card className="flex-1 rounded-2xl p-4">
-          <ThemedText tone="muted" className="text-xs">Monthly</ThemedText>
-          <ThemedText className="text-2xl font-extrabold mt-1">
-            {format(totalMonthlySpend)}
-          </ThemedText>
-        </Card>
-        <Card className="flex-1 rounded-2xl p-4">
-          <ThemedText tone="muted" className="text-xs">Yearly</ThemedText>
-          <ThemedText className="text-2xl font-extrabold mt-1">
-            {format(totalMonthlySpend * 12)}
-          </ThemedText>
-        </Card>
-      </View>
+      {spendByCurrency.length === 0 ? (
+        <ThemedText tone="muted" className="text-sm mb-6">
+          No active subscriptions yet.
+        </ThemedText>
+      ) : (
+        spendByCurrency.map((row) => (
+          <View key={row.currency} className="flex-row mb-3" style={{ gap: 12 }}>
+            <Card className="flex-1 rounded-2xl p-4">
+              <ThemedText tone="muted" className="text-xs">Monthly{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</ThemedText>
+              <ThemedText className="text-2xl font-extrabold mt-1">
+                {formatMoney(row.monthly, row.currency)}
+              </ThemedText>
+            </Card>
+            <Card className="flex-1 rounded-2xl p-4">
+              <ThemedText tone="muted" className="text-xs">Yearly{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</ThemedText>
+              <ThemedText className="text-2xl font-extrabold mt-1">
+                {formatMoney(row.yearly, row.currency)}
+              </ThemedText>
+            </Card>
+          </View>
+        ))
+      )}
 
-      <ThemedText tone="muted" className="text-sm font-semibold mb-3">
+      <ThemedText tone="muted" className="text-sm font-semibold mb-3 mt-3">
         Spending by subscription
       </ThemedText>
 
@@ -64,7 +81,7 @@ const Insights = () => {
                   {sub.name}
                 </ThemedText>
                 <ThemedText className="text-sm font-semibold">
-                  {format(monthly)}
+                  {formatMoney(monthly, sub.currency)}
                   <Text style={{ color: colors.mutedForeground }} className="text-xs">/mo</Text>
                 </ThemedText>
               </View>

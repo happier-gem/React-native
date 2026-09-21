@@ -23,6 +23,19 @@ export function formatDate(value: string | number | Date): string {
   return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }
 
+/** Moves a YYYY-MM-DD date forward by one billing cycle. Mirrors the mobile
+ * app's addCycle() in context/subscriptions-context.tsx exactly — kept in sync
+ * by hand since the two apps can't share code without becoming a workspace. */
+export function addCycle(isoDate: string, cycle: BillingCycle): string {
+  const date = new Date(isoDate);
+  if (cycle === "monthly") {
+    date.setMonth(date.getMonth() + 1);
+  } else {
+    date.setFullYear(date.getFullYear() + 1);
+  }
+  return date.toISOString().slice(0, 10);
+}
+
 /**
  * Groups by currency (summing different currencies together would be a
  * misleading number), and within each currency sums the monthly-equivalent

@@ -1,12 +1,15 @@
-import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
-import { IconKey } from "@/constants/icons";
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useAuth } from "@clerk/expo";
+import { IconKey, icons } from "@/constants/icons";
 import { BillingCycle } from "@/constants/data";
+import { DEFAULT_BRAND_PRESET } from "@/constants/brand-presets";
 import {
     cancelRenewalReminder,
     notifySubscriptionCanceled,
     scheduleRenewalReminder,
 } from "@/lib/notifications";
 import { useNotificationsSettings } from "@/context/notifications-context";
+import { createApiClient } from "@/lib/api-client";
 
 export type SubscriptionStatus = "active" | "canceled";
 
@@ -16,80 +19,197 @@ export type Subscription = {
     icon: IconKey;
     brandColor: string;
     price: number;
+    currency: string;
     cycle: BillingCycle;
     category: string;
     renewalDate: string;
     status: SubscriptionStatus;
 };
 
-const initialSubscriptions: Subscription[] = [
-    { id: "spotify", name: "Spotify", icon: "spotify", brandColor: "#1DB954", price: 11.99, cycle: "monthly", category: "Music", renewalDate: "2026-10-01", status: "active" },
-    { id: "claude", name: "Claude Max", icon: "claude", brandColor: "#DA7756", price: 100, cycle: "monthly", category: "AI", renewalDate: "2026-10-05", status: "active" },
-    { id: "figma", name: "Figma", icon: "figma", brandColor: "#A259FF", price: 15, cycle: "monthly", category: "Design", renewalDate: "2026-10-18", status: "active" },
-    { id: "adobe", name: "Adobe Creative Cloud", icon: "adobe", brandColor: "#FF0000", price: 59.99, cycle: "monthly", category: "Design", renewalDate: "2026-10-09", status: "active" },
-    { id: "notion", name: "Notion", icon: "notion", brandColor: "#9B9A97", price: 96, cycle: "yearly", category: "Productivity", renewalDate: "2027-03-12", status: "active" },
-    { id: "github", name: "GitHub Pro", icon: "github", brandColor: "#6E7681", price: 4, cycle: "monthly", category: "Developer Tools", renewalDate: "2026-10-22", status: "active" },
-];
-
-export const monthlyEquivalent = (sub: Subscription) =>
-    sub.cycle === "yearly" ? sub.price / 12 : sub.price;
-
-const addCycle = (isoDate: string, cycle: BillingCycle) => {
-    const date = new Date(isoDate);
-    if (cycle === "monthly") {
-        date.setMonth(date.getMonth() + 1);
-    } else {
-        date.setFullYear(date.getFullYear() + 1);
-    }
-    return date.toISOString().slice(0, 10);
+// Shape returned by the admin server's /api/subscriptions routes — matches
+// admin/supabase/schema.sql's subscriptions table (snake_case, plus fields the
+// UI doesn't need like user_id/created_at/updated_at).
+type ServerSubscription = {
+    id: string;
+    name: string;
+    icon: string | null;
+    brand_color: string | null;
+    price: number;
+    currency: string;
+    cycle: BillingCycle;
+    category: string;
+    renewal_date: string;
+    status: SubscriptionStatus;
 };
 
-export type SubscriptionEdits = {
+const normalizeIcon = (value: string | null): IconKey =>
+    value && value in icons ? (value as IconKey) : DEFAULT_BRAND_PRESET.icon;
+
+const fromServer = (row: ServerSubscription): Subscription => ({
+    id: row.id,
+    name: row.name,
+    icon: normalizeIcon(row.icon),
+    brandColor: row.brand_color ?? DEFAULT_BRAND_PRESET.brandColor,
+    price: row.price,
+    currency: row.currency,
+    cycle: row.cycle,
+    category: row.category,
+    renewalDate: row.renewal_date,
+    status: row.status,
+});
+
+export const monthlyEquivalent = (sub: Pick<Subscription, "price" | "cycle">) =>
+    sub.cycle === "yearly" ? sub.price / 12 : sub.price;
+
+export type CurrencySpend = { currency: string; monthly: number; yearly: number };
+
+/** Groups by currency rather than summing them together — combining different
+ * currencies into one number would be misleading, not just imprecise. */
+export const aggregateSpendByCurrency = (
+    subscriptions: Pick<Subscription, "price" | "cycle" | "currency">[]
+): CurrencySpend[] => {
+    const totals = new Map<string, number>();
+    for (const sub of subscriptions) {
+        const monthly = monthlyEquivalent(sub);
+        totals.set(sub.currency, (totals.get(sub.currency) ?? 0) + monthly);
+    }
+    return [...totals.entries()]
+        .map(([currency, monthly]) => ({ currency, monthly, yearly: monthly * 12 }))
+        .sort((a, b) => b.monthly - a.monthly);
+};
+
+export type NewSubscriptionInput = {
+    name: string;
     price: number;
+    currency: string;
     cycle: BillingCycle;
+    category: string;
+    renewalDate: string;
+    icon: IconKey;
+    brandColor: string;
+};
+
+export type SubscriptionEdits = Partial<NewSubscriptionInput>;
+
+const toServerEdits = (edits: SubscriptionEdits) => {
+    const body: Record<string, unknown> = {};
+    if (edits.name !== undefined) body.name = edits.name;
+    if (edits.price !== undefined) body.price = edits.price;
+    if (edits.currency !== undefined) body.currency = edits.currency;
+    if (edits.cycle !== undefined) body.cycle = edits.cycle;
+    if (edits.category !== undefined) body.category = edits.category;
+    if (edits.renewalDate !== undefined) body.renewal_date = edits.renewalDate;
+    if (edits.icon !== undefined) body.icon = edits.icon;
+    if (edits.brandColor !== undefined) body.brand_color = edits.brandColor;
+    return body;
 };
 
 type SubscriptionsContextValue = {
     subscriptions: Subscription[];
     activeSubscriptions: Subscription[];
-    totalMonthlySpend: number;
+    loading: boolean;
+    error: string | null;
+    spendByCurrency: CurrencySpend[];
     getSubscription: (id: string) => Subscription | undefined;
-    cancelSubscription: (id: string) => void;
-    renewSubscription: (id: string) => void;
-    updateSubscription: (id: string, edits: SubscriptionEdits) => void;
+    addSubscription: (input: NewSubscriptionInput) => Promise<void>;
+    updateSubscription: (id: string, edits: SubscriptionEdits) => Promise<void>;
+    cancelSubscription: (id: string) => Promise<void>;
+    renewSubscription: (id: string) => Promise<void>;
+    deleteSubscription: (id: string) => Promise<void>;
+    refresh: () => Promise<void>;
 };
 
 const SubscriptionsContext = createContext<SubscriptionsContextValue | undefined>(undefined);
 
 export function SubscriptionsProvider({ children }: { children: ReactNode }) {
-    const [subscriptions, setSubscriptions] = useState<Subscription[]>(initialSubscriptions);
+    const { isLoaded, isSignedIn, userId, getToken } = useAuth();
     const { enabled: notificationsEnabled } = useNotificationsSettings();
+    const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const cancelSubscription = (id: string) => {
-        const target = subscriptions.find((sub) => sub.id === id);
-        setSubscriptions((prev) =>
-            prev.map((sub) => (sub.id === id ? { ...sub, status: "canceled" } : sub))
+    const api = useMemo(() => createApiClient(getToken), [getToken]);
+
+    const refresh = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const { subscriptions: rows } = await api.get<{ subscriptions: ServerSubscription[] }>(
+                "/api/subscriptions"
+            );
+            setSubscriptions(rows.map(fromServer));
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Failed to load subscriptions");
+        } finally {
+            setLoading(false);
+        }
+    }, [api]);
+
+    useEffect(() => {
+        if (!isLoaded) return;
+        if (!isSignedIn) {
+            // Clear immediately on sign-out (or no session) so a previous user's
+            // subscriptions can never linger for whoever signs in next.
+            setSubscriptions([]);
+            setLoading(false);
+            setError(null);
+            return;
+        }
+        refresh();
+        // Deliberately keyed on isLoaded/isSignedIn/userId only, not `refresh` —
+        // this should refetch when the signed-in identity changes, not on every
+        // render where the api client's identity happens to change.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isLoaded, isSignedIn, userId]);
+
+    const addSubscription = async (input: NewSubscriptionInput) => {
+        const { subscription } = await api.post<{ subscription: ServerSubscription }>("/api/subscriptions", {
+            name: input.name,
+            price: input.price,
+            currency: input.currency,
+            cycle: input.cycle,
+            category: input.category,
+            renewal_date: input.renewalDate,
+            icon: input.icon,
+            brand_color: input.brandColor,
+        });
+        setSubscriptions((prev) => [fromServer(subscription), ...prev]);
+    };
+
+    const updateSubscription = async (id: string, edits: SubscriptionEdits) => {
+        const { subscription } = await api.patch<{ subscription: ServerSubscription }>(
+            `/api/subscriptions/${id}`,
+            toServerEdits(edits)
         );
+        const updated = fromServer(subscription);
+        setSubscriptions((prev) => prev.map((sub) => (sub.id === id ? updated : sub)));
+    };
+
+    const cancelSubscription = async (id: string) => {
+        const target = subscriptions.find((sub) => sub.id === id);
+        const { subscription } = await api.post<{ subscription: ServerSubscription }>(
+            `/api/subscriptions/${id}/cancel`
+        );
+        const updated = fromServer(subscription);
+        setSubscriptions((prev) => prev.map((sub) => (sub.id === id ? updated : sub)));
         cancelRenewalReminder(id);
         if (notificationsEnabled && target) {
             notifySubscriptionCanceled(id, target.name);
         }
     };
 
-    const renewSubscription = (id: string) => {
-        setSubscriptions((prev) =>
-            prev.map((sub) =>
-                sub.id === id
-                    ? { ...sub, status: "active", renewalDate: addCycle(sub.renewalDate, sub.cycle) }
-                    : sub
-            )
+    const renewSubscription = async (id: string) => {
+        const { subscription } = await api.post<{ subscription: ServerSubscription }>(
+            `/api/subscriptions/${id}/renew`
         );
+        const updated = fromServer(subscription);
+        setSubscriptions((prev) => prev.map((sub) => (sub.id === id ? updated : sub)));
     };
 
-    const updateSubscription = (id: string, edits: SubscriptionEdits) => {
-        setSubscriptions((prev) =>
-            prev.map((sub) => (sub.id === id ? { ...sub, ...edits } : sub))
-        );
+    const deleteSubscription = async (id: string) => {
+        await api.del<void>(`/api/subscriptions/${id}`);
+        cancelRenewalReminder(id);
+        setSubscriptions((prev) => prev.filter((sub) => sub.id !== id));
     };
 
     const getSubscription = (id: string) => subscriptions.find((sub) => sub.id === id);
@@ -99,8 +219,8 @@ export function SubscriptionsProvider({ children }: { children: ReactNode }) {
         [subscriptions]
     );
 
-    const totalMonthlySpend = useMemo(
-        () => activeSubscriptions.reduce((sum, sub) => sum + monthlyEquivalent(sub), 0),
+    const spendByCurrency = useMemo(
+        () => aggregateSpendByCurrency(activeSubscriptions),
         [activeSubscriptions]
     );
 
@@ -116,11 +236,16 @@ export function SubscriptionsProvider({ children }: { children: ReactNode }) {
             value={{
                 subscriptions,
                 activeSubscriptions,
-                totalMonthlySpend,
+                loading,
+                error,
+                spendByCurrency,
                 getSubscription,
+                addSubscription,
+                updateSubscription,
                 cancelSubscription,
                 renewSubscription,
-                updateSubscription,
+                deleteSubscription,
+                refresh,
             }}
         >
             {children}

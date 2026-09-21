@@ -1,15 +1,16 @@
-import { Alert, Modal, Pressable, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Pressable, Text, TextInput, View } from "react-native";
 import React, { useState } from "react";
-import { Link, useLocalSearchParams } from "expo-router";
+import { Link, router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { BillingCycle, formatRenewalDate } from "@/constants/data";
+import { BillingCycle, formatMoney, formatRenewalDate } from "@/constants/data";
+import { BRAND_PRESETS } from "@/constants/brand-presets";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 import { BrandIcon } from "@/components/brand-icon";
-import { useCurrency } from "@/context/currency-context";
 import { useAppTheme } from "@/context/theme-context";
 import {
   monthlyEquivalent,
   Subscription,
+  SubscriptionEdits,
   useSubscriptions,
 } from "@/context/subscriptions-context";
 
@@ -23,6 +24,8 @@ const BackLink = () => (
   </Link>
 );
 
+const errorMessage = (e: unknown) => (e instanceof Error ? e.message : "Something went wrong.");
+
 const EditSubscriptionModal = ({
   visible,
   onClose,
@@ -33,10 +36,14 @@ const EditSubscriptionModal = ({
   subscription: Subscription;
 }) => {
   const { colors, accent } = useAppTheme();
-  const { currency } = useCurrency();
   const { updateSubscription } = useSubscriptions();
+  const [name, setName] = useState(subscription.name);
   const [price, setPrice] = useState(subscription.price.toString());
   const [cycle, setCycle] = useState<BillingCycle>(subscription.cycle);
+  const [category, setCategory] = useState(subscription.category);
+  const [renewalDate, setRenewalDate] = useState(subscription.renewalDate);
+  const [icon, setIcon] = useState(subscription.icon);
+  const [saving, setSaving] = useState(false);
 
   const handleCycleChange = (nextCycle: BillingCycle) => {
     if (nextCycle === cycle) return;
@@ -48,31 +55,93 @@ const EditSubscriptionModal = ({
     setCycle(nextCycle);
   };
 
-  const handleSave = () => {
-    const parsed = parseFloat(price);
-    if (isNaN(parsed) || parsed < 0) {
+  const handleSave = async () => {
+    if (!name.trim()) {
+      Alert.alert("Missing name", "Enter a subscription name.");
+      return;
+    }
+    const parsedPrice = parseFloat(price);
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
       Alert.alert("Invalid price", "Enter a valid amount.");
       return;
     }
-    updateSubscription(subscription.id, { price: parsed, cycle });
-    onClose();
+    if (!category.trim()) {
+      Alert.alert("Missing category", "Enter a category.");
+      return;
+    }
+    if (isNaN(new Date(renewalDate).getTime())) {
+      Alert.alert("Invalid date", "Enter the renewal date as YYYY-MM-DD.");
+      return;
+    }
+
+    const preset = BRAND_PRESETS.find((p) => p.icon === icon);
+    const edits: SubscriptionEdits = {
+      name: name.trim(),
+      price: parsedPrice,
+      cycle,
+      category: category.trim(),
+      renewalDate,
+      icon,
+      brandColor: preset?.brandColor ?? subscription.brandColor,
+    };
+
+    setSaving(true);
+    try {
+      await updateSubscription(subscription.id, edits);
+      onClose();
+    } catch (e) {
+      Alert.alert("Couldn't save changes", errorMessage(e));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-black/40">
-        <View style={{ backgroundColor: colors.background }} className="rounded-t-3xl p-6">
+        <View style={{ backgroundColor: colors.background, maxHeight: "88%" }} className="rounded-t-3xl p-6">
           <ThemedText className="text-xl font-extrabold mb-5">
-            Edit {subscription.name}
+            Edit subscription
           </ThemedText>
+
+          <ThemedText className="text-sm font-semibold mb-2">Name</ThemedText>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="Subscription name"
+            placeholderTextColor={colors.mutedForeground}
+            style={{ backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }}
+            className="border rounded-2xl px-4 py-3.5 mb-4"
+          />
+
+          <ThemedText className="text-sm font-semibold mb-2">Icon</ThemedText>
+          <View className="flex-row flex-wrap mb-4" style={{ gap: 10 }}>
+            {BRAND_PRESETS.map((preset) => {
+              const selected = preset.icon === icon;
+              return (
+                <Pressable
+                  key={preset.icon}
+                  onPress={() => setIcon(preset.icon)}
+                  style={{
+                    borderWidth: selected ? 2 : 0,
+                    borderColor: accent,
+                    borderRadius: 999,
+                    padding: selected ? 2 : 4,
+                  }}
+                >
+                  <BrandIcon icon={preset.icon} brandColor={preset.brandColor} size={40} />
+                </Pressable>
+              );
+            })}
+          </View>
 
           <ThemedText className="text-sm font-semibold mb-2">Price</ThemedText>
           <View
             style={{ backgroundColor: colors.card, borderColor: colors.border }}
-            className="flex-row items-center border rounded-2xl mb-5"
+            className="flex-row items-center border rounded-2xl mb-4"
           >
             <ThemedText tone="muted" className="pl-4 text-base">
-              {currency.symbol}
+              {subscription.currency}
             </ThemedText>
             <TextInput
               value={price}
@@ -88,7 +157,7 @@ const EditSubscriptionModal = ({
           <ThemedText className="text-sm font-semibold mb-2">Billing cycle</ThemedText>
           <View
             style={{ backgroundColor: colors.card }}
-            className="flex-row rounded-2xl p-1.5 mb-6"
+            className="flex-row rounded-2xl p-1.5 mb-4"
           >
             {(["monthly", "yearly"] as BillingCycle[]).map((option) => {
               const selected = option === cycle;
@@ -110,11 +179,33 @@ const EditSubscriptionModal = ({
             })}
           </View>
 
+          <ThemedText className="text-sm font-semibold mb-2">Renewal date</ThemedText>
+          <TextInput
+            value={renewalDate}
+            onChangeText={setRenewalDate}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={colors.mutedForeground}
+            style={{ backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }}
+            className="border rounded-2xl px-4 py-3.5 mb-4"
+          />
+
+          <ThemedText className="text-sm font-semibold mb-2">Category</ThemedText>
+          <TextInput
+            value={category}
+            onChangeText={setCategory}
+            placeholder="e.g. Design, Music"
+            placeholderTextColor={colors.mutedForeground}
+            style={{ backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }}
+            className="border rounded-2xl px-4 py-3.5 mb-6"
+          />
+
           <Pressable
             onPress={handleSave}
+            disabled={saving}
+            style={{ opacity: saving ? 0.7 : 1 }}
             className="rounded-2xl bg-primary p-4 items-center mb-3"
           >
-            <Text className="text-base font-semibold text-white">Save</Text>
+            {saving ? <ActivityIndicator color="#ffffff" /> : <Text className="text-base font-semibold text-white">Save</Text>}
           </Pressable>
           <Pressable onPress={onClose} className="p-3 items-center">
             <ThemedText tone="muted" className="text-base font-semibold">
@@ -129,20 +220,28 @@ const EditSubscriptionModal = ({
 
 const SubscriptionDetails = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getSubscription, cancelSubscription, renewSubscription } = useSubscriptions();
+  const { getSubscription, cancelSubscription, renewSubscription, deleteSubscription, loading } = useSubscriptions();
   const subscription = getSubscription(id);
-  const { format } = useCurrency();
   const { colors, accent } = useAppTheme();
   const [editVisible, setEditVisible] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   if (!subscription) {
     return (
       <ThemedSafeAreaView>
         <View className="flex-1 p-5">
-          <ThemedText className="text-lg font-semibold mb-4">
-            Subscription not found
-          </ThemedText>
-          <BackLink />
+          {loading ? (
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator color={colors.foreground} />
+            </View>
+          ) : (
+            <>
+              <ThemedText className="text-lg font-semibold mb-4">
+                Subscription not found
+              </ThemedText>
+              <BackLink />
+            </>
+          )}
         </View>
       </ThemedSafeAreaView>
     );
@@ -159,7 +258,16 @@ const SubscriptionDetails = () => {
         {
           text: "Cancel subscription",
           style: "destructive",
-          onPress: () => cancelSubscription(subscription.id),
+          onPress: async () => {
+            setBusy(true);
+            try {
+              await cancelSubscription(subscription.id);
+            } catch (e) {
+              Alert.alert("Couldn't cancel", errorMessage(e));
+            } finally {
+              setBusy(false);
+            }
+          },
         },
       ]
     );
@@ -175,7 +283,43 @@ const SubscriptionDetails = () => {
           }.`,
       [
         { text: "Cancel", style: "cancel" },
-        { text: canceled ? "Reactivate" : "Renew", onPress: () => renewSubscription(subscription.id) },
+        {
+          text: canceled ? "Reactivate" : "Renew",
+          onPress: async () => {
+            setBusy(true);
+            try {
+              await renewSubscription(subscription.id);
+            } catch (e) {
+              Alert.alert("Couldn't renew", errorMessage(e));
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete subscription?",
+      `This permanently deletes ${subscription.name} and its history. This can't be undone — if you just want to stop being billed, use Cancel instead.`,
+      [
+        { text: "Keep it", style: "cancel" },
+        {
+          text: "Delete permanently",
+          style: "destructive",
+          onPress: async () => {
+            setBusy(true);
+            try {
+              await deleteSubscription(subscription.id);
+              router.replace("/subscriptions");
+            } catch (e) {
+              setBusy(false);
+              Alert.alert("Couldn't delete", errorMessage(e));
+            }
+          },
+        },
       ]
     );
   };
@@ -219,14 +363,14 @@ const SubscriptionDetails = () => {
         <View className="flex-row items-center justify-between py-2">
           <ThemedText tone="muted">Price</ThemedText>
           <ThemedText className="font-semibold">
-            {format(subscription.price)}{" "}
+            {formatMoney(subscription.price, subscription.currency)}{" "}
             {subscription.cycle === "monthly" ? "/mo" : "/yr"}
           </ThemedText>
         </View>
         <View className="flex-row items-center justify-between py-2">
           <ThemedText tone="muted">Monthly equivalent</ThemedText>
           <ThemedText className="font-semibold">
-            {format(monthlyEquivalent(subscription))}
+            {formatMoney(monthlyEquivalent(subscription), subscription.currency)}
           </ThemedText>
         </View>
         <View className="flex-row items-center justify-between py-2">
@@ -241,8 +385,9 @@ const SubscriptionDetails = () => {
 
       {canceled ? (
         <Pressable
-          className="rounded-2xl p-4 items-center"
-          style={{ backgroundColor: accent }}
+          className="rounded-2xl p-4 items-center mb-3"
+          style={{ backgroundColor: accent, opacity: busy ? 0.7 : 1 }}
+          disabled={busy}
           onPress={handleRenew}
         >
           <Text className="text-base font-semibold text-white">
@@ -253,6 +398,8 @@ const SubscriptionDetails = () => {
         <>
           <Pressable
             className="rounded-2xl bg-primary p-4 items-center mb-3"
+            style={{ opacity: busy ? 0.7 : 1 }}
+            disabled={busy}
             onPress={handleRenew}
           >
             <Text className="text-base font-semibold text-white">
@@ -260,7 +407,9 @@ const SubscriptionDetails = () => {
             </Text>
           </Pressable>
           <Pressable
-            className="rounded-2xl border border-destructive p-4 items-center"
+            className="rounded-2xl border border-destructive p-4 items-center mb-3"
+            style={{ opacity: busy ? 0.7 : 1 }}
+            disabled={busy}
             onPress={handleCancel}
           >
             <Text className="text-base font-semibold text-destructive">
@@ -269,6 +418,12 @@ const SubscriptionDetails = () => {
           </Pressable>
         </>
       )}
+
+      <Pressable className="p-3 items-center" disabled={busy} onPress={handleDelete}>
+        <ThemedText tone="muted" className="text-sm font-semibold" style={{ color: colors.destructive }}>
+          Delete permanently
+        </ThemedText>
+      </Pressable>
 
       <EditSubscriptionModal
         visible={editVisible}

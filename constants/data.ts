@@ -26,3 +26,16 @@ export const formatDaysUntil = (days: number) => {
     if (days === 1) return "Tomorrow";
     return `In ${days} days`;
 };
+
+/** Formats an amount in ITS OWN currency — use this for any individual
+ * subscription's price, since each one now carries its own currency and
+ * shouldn't be shown with the user's separately-chosen display currency's
+ * symbol. Use useCurrency().format() only for the user's own preference
+ * (e.g. defaulting the Add Subscription form). */
+export const formatMoney = (amount: number, currency: string) => {
+    try {
+        return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
+    } catch {
+        return `${amount.toFixed(2)} ${currency}`;
+    }
+};
