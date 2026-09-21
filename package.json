@@ -8,6 +8,7 @@
     "android": "set NODE_OPTIONS=--no-network-family-autoselection && expo start --android",
     "ios": "set NODE_OPTIONS=--no-network-family-autoselection && expo start --ios",
     "web": "set NODE_OPTIONS=--no-network-family-autoselection && expo start --web",
+    "admin": "npm --prefix admin run dev",
     "lint": "expo lint",
     "postinstall": "patch-package"
   },
