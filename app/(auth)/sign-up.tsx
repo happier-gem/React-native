@@ -14,8 +14,8 @@ const SignUp = () => {
     const [confirmPassword, setConfirmPassword] = useState("")
     const [code, setCode] = useState("")
     const [pendingVerification, setPendingVerification] = useState(false)
-    const [showPassword, setShowPassword] = useState(false)
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+    const [showPassword, setShowPassword] = useState(true)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(true)
     const [error, setError] = useState("")
 
     const isSubmitting = fetchStatus === "fetching"
@@ -112,7 +112,7 @@ const SignUp = () => {
                                 placeholderTextColor={colors.mutedForeground}
                                 keyboardType="number-pad"
                                 style={{ ...fieldWrapStyle, color: colors.foreground }}
-                                className="border rounded-2xl px-4 py-3.5 mb-2"
+                                className="border rounded-2xl pl-5 pr-4 py-3.5 mb-2"
                             />
                         </>
                     ) : (
@@ -129,7 +129,7 @@ const SignUp = () => {
                                 autoCorrect={false}
                                 keyboardType="email-address"
                                 style={{ ...fieldWrapStyle, color: colors.foreground }}
-                                className="border rounded-2xl px-4 py-3.5 mb-4"
+                                className="border rounded-2xl pl-5 pr-4 py-3.5 mb-4"
                             />
 
                             <ThemedText className="text-sm font-semibold mb-2">
@@ -145,7 +145,7 @@ const SignUp = () => {
                                     autoCapitalize="none"
                                     autoCorrect={false}
                                     style={{ color: colors.foreground }}
-                                    className="flex-1 px-4 py-3.5"
+                                    className="flex-1 pl-5 pr-4 py-3.5"
                                 />
                                 <Pressable onPress={() => setShowPassword((v) => !v)} className="px-4">
                                     <Ionicons
@@ -169,7 +169,7 @@ const SignUp = () => {
                                     autoCapitalize="none"
                                     autoCorrect={false}
                                     style={{ color: colors.foreground }}
-                                    className="flex-1 px-4 py-3.5"
+                                    className="flex-1 pl-5 pr-4 py-3.5"
                                 />
                                 <Pressable onPress={() => setShowConfirmPassword((v) => !v)} className="px-4">
                                     <Ionicons

@@ -11,7 +11,7 @@ const SignIn = () => {
     const { signIn, fetchStatus } = useSignIn()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
-    const [showPassword, setShowPassword] = useState(false)
+    const [showPassword, setShowPassword] = useState(true)
     const [error, setError] = useState("")
 
     const isSubmitting = fetchStatus === "fetching"
@@ -77,7 +77,7 @@ const SignIn = () => {
                         autoCorrect={false}
                         keyboardType="email-address"
                         style={inputStyle}
-                        className="border rounded-2xl px-4 py-3.5 mb-4"
+                        className="border rounded-2xl pl-5 pr-4 py-3.5 mb-4"
                     />
 
                     <ThemedText className="text-sm font-semibold mb-2">
@@ -96,7 +96,7 @@ const SignIn = () => {
                             autoCapitalize="none"
                             autoCorrect={false}
                             style={{ color: colors.foreground }}
-                            className="flex-1 px-4 py-3.5"
+                            className="flex-1 pl-5 pr-4 py-3.5"
                         />
                         <Pressable onPress={() => setShowPassword((v) => !v)} className="px-4">
                             <Ionicons

@@ -16,7 +16,7 @@ const ForgotPassword = () => {
     const [code, setCode] = useState("")
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
-    const [showPassword, setShowPassword] = useState(false)
+    const [showPassword, setShowPassword] = useState(true)
     const [error, setError] = useState("")
 
     const isSubmitting = fetchStatus === "fetching"
@@ -118,7 +118,7 @@ const ForgotPassword = () => {
                                 autoCorrect={false}
                                 keyboardType="email-address"
                                 style={inputStyle}
-                                className="border rounded-2xl px-4 py-3.5 mb-4"
+                                className="border rounded-2xl pl-5 pr-4 py-3.5 mb-4"
                             />
 
                             {error ? (
@@ -151,7 +151,7 @@ const ForgotPassword = () => {
                                 placeholderTextColor={colors.mutedForeground}
                                 keyboardType="number-pad"
                                 style={inputStyle}
-                                className="border rounded-2xl px-4 py-3.5 mb-4"
+                                className="border rounded-2xl pl-5 pr-4 py-3.5 mb-4"
                             />
 
                             <ThemedText className="text-sm font-semibold mb-2">
@@ -170,7 +170,7 @@ const ForgotPassword = () => {
                                     autoCapitalize="none"
                                     autoCorrect={false}
                                     style={{ color: colors.foreground }}
-                                    className="flex-1 px-4 py-3.5"
+                                    className="flex-1 pl-5 pr-4 py-3.5"
                                 />
                                 <Pressable onPress={() => setShowPassword((v) => !v)} className="px-4">
                                     <Ionicons
@@ -193,7 +193,7 @@ const ForgotPassword = () => {
                                 autoCapitalize="none"
                                 autoCorrect={false}
                                 style={inputStyle}
-                                className="border rounded-2xl px-4 py-3.5 mb-2"
+                                className="border rounded-2xl pl-5 pr-4 py-3.5 mb-2"
                             />
 
                             {error ? (
