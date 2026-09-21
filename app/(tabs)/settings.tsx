@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 import { router } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useAccount } from "@/context/account-context";
@@ -73,15 +74,33 @@ const EditAccountModal = ({
   onClose: () => void;
 }) => {
   const { colors } = useAppTheme();
-  const { account, updateAccount } = useAccount();
+  const { account, updateAccount, updateAvatar } = useAccount();
   const [name, setName] = useState(account.name);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
     await updateAccount({ name: name.trim() || account.name });
     setSaving(false);
     onClose();
+  };
+
+  const handlePickAvatar = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    setUploadingAvatar(true);
+    await updateAvatar(result.assets[0].uri);
+    setUploadingAvatar(false);
   };
 
   const fieldStyle = {
