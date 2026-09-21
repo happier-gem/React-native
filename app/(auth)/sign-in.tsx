@@ -1,23 +1,43 @@
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native"
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native"
 import React, { useState } from "react"
 import { Link, router } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
+import { useSignIn } from "@clerk/expo"
 import { useAppTheme } from "@/context/theme-context"
 import { ThemedSafeAreaView, ThemedText } from "@/components/themed"
 
 const SignIn = () => {
     const { colors } = useAppTheme()
+    const { signIn, fetchStatus } = useSignIn()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState("")
 
-    const handleSignIn = () => {
+    const isSubmitting = fetchStatus === "fetching"
+
+    const handleSignIn = async () => {
         if (!email.trim() || !password.trim()) {
             setError("Enter your email and password to continue.")
             return
         }
         setError("")
+
+        const { error: passwordError } = await signIn.password({
+            identifier: email.trim(),
+            password,
+        })
+        if (passwordError) {
+            setError(passwordError.longMessage ?? passwordError.message)
+            return
+        }
+
+        const { error: finalizeError } = await signIn.finalize()
+        if (finalizeError) {
+            setError(finalizeError.longMessage ?? finalizeError.message)
+            return
+        }
+
         router.replace("/home")
     }
 
@@ -91,11 +111,25 @@ const SignIn = () => {
                         <Text className="text-sm text-destructive mb-2">{error}</Text>
                     ) : null}
 
+                    <Link href="/(auth)/forgot-password" asChild>
+                        <Pressable className="self-end mt-2">
+                            <ThemedText tone="accent" className="text-sm font-semibold">
+                                Forgot password?
+                            </ThemedText>
+                        </Pressable>
+                    </Link>
+
                     <Pressable
                         onPress={handleSignIn}
+                        disabled={isSubmitting}
                         className="flex-row rounded-2xl bg-primary p-4 items-center justify-center mt-6"
+                        style={{ opacity: isSubmitting ? 0.7 : 1 }}
                     >
-                        <Ionicons name="log-in-outline" size={18} color="#ffffff" style={{ marginRight: 8 }} />
+                        {isSubmitting ? (
+                            <ActivityIndicator color="#ffffff" style={{ marginRight: 8 }} />
+                        ) : (
+                            <Ionicons name="log-in-outline" size={18} color="#ffffff" style={{ marginRight: 8 }} />
+                        )}
                         <Text className="text-base font-semibold text-white">Sign In</Text>
                     </Pressable>
 

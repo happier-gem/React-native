@@ -8,14 +8,14 @@ import { ThemeProvider, useAppTheme } from '@/context/theme-context';
 import { AccountProvider } from '@/context/account-context';
 import { CurrencyProvider } from '@/context/currency-context';
 import { SubscriptionsProvider } from '@/context/subscriptions-context';
-// import { ClerkProvider } from '@clerk/expo';
-// import { tokenCache } from '@clerk/expo/token-cache';
+import { ClerkProvider } from '@clerk/expo';
+import { tokenCache } from '@clerk/expo/token-cache';
 
-// const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-// if (!publishableKey) {
-//   throw new Error('Add EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY to your .env.local file');
-// }
+if (!publishableKey) {
+  throw new Error('Add EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY to your .env.local file');
+}
 
 function AppStatusBar() {
   const { resolvedScheme } = useAppTheme();
@@ -41,7 +41,7 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    // <ClerkProvider publishableKey={publishableKey!} tokenCache={tokenCache}>
+    <ClerkProvider publishableKey={publishableKey!} tokenCache={tokenCache}>
       <ThemeProvider>
         <AccountProvider>
           <CurrencyProvider>
@@ -52,6 +52,6 @@ export default function RootLayout() {
           </CurrencyProvider>
         </AccountProvider>
       </ThemeProvider>
-    // </ClerkProvider>
+    </ClerkProvider>
   );
 }
