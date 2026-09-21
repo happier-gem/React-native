@@ -117,6 +117,30 @@ const EditAccountModal = ({
             Edit Account
           </ThemedText>
 
+          <Pressable
+            onPress={handlePickAvatar}
+            disabled={uploadingAvatar}
+            className="items-center mb-6"
+          >
+            <View>
+              <Image
+                source={account.imageUrl ? { uri: account.imageUrl } : require("@/assets/images/avatar.png")}
+                resizeMode="cover"
+                className="w-24 h-24 rounded-full"
+                style={{ opacity: uploadingAvatar ? 0.5 : 1 }}
+              />
+              <View
+                style={{ backgroundColor: colors.primary, borderColor: colors.background }}
+                className="absolute bottom-0 right-0 w-8 h-8 rounded-full items-center justify-center"
+              >
+                <Ionicons name="camera-outline" size={16} color="#ffffff" />
+              </View>
+            </View>
+            <ThemedText tone="muted" className="text-sm mt-2">
+              {uploadingAvatar ? "Uploading..." : "Tap to change photo"}
+            </ThemedText>
+          </Pressable>
+
           <ThemedText className="text-sm font-semibold mb-2">Name</ThemedText>
           <TextInput
             value={name}
