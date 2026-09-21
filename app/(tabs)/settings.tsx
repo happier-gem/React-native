@@ -78,6 +78,7 @@ const EditAccountModal = ({
   const [name, setName] = useState(account.name);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
 
   const handleSave = async () => {
     setSaving(true);
@@ -95,12 +96,20 @@ const EditAccountModal = ({
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
+      base64: true,
     });
-    if (result.canceled || !result.assets[0]) return;
+    if (result.canceled || !result.assets[0]?.base64) return;
 
+    setAvatarError("");
     setUploadingAvatar(true);
-    await updateAvatar(result.assets[0].uri);
-    setUploadingAvatar(false);
+    try {
+      const mimeType = result.assets[0].mimeType ?? "image/jpeg";
+      await updateAvatar(`data:${mimeType};base64,${result.assets[0].base64}`);
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : "Couldn't upload photo. Please try again.");
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   const fieldStyle = {
@@ -139,6 +148,9 @@ const EditAccountModal = ({
             <ThemedText tone="muted" className="text-sm mt-2">
               {uploadingAvatar ? "Uploading..." : "Tap to change photo"}
             </ThemedText>
+            {avatarError ? (
+              <Text className="text-sm text-destructive mt-1 text-center">{avatarError}</Text>
+            ) : null}
           </Pressable>
 
           <ThemedText className="text-sm font-semibold mb-2">Name</ThemedText>

@@ -10,7 +10,7 @@ export type Account = {
 type AccountContextValue = {
     account: Account;
     updateAccount: (update: { name: string }) => Promise<void>;
-    updateAvatar: (fileUri: string) => Promise<void>;
+    updateAvatar: (dataUri: string) => Promise<void>;
 };
 
 const AccountContext = createContext<AccountContextValue | undefined>(undefined);
@@ -33,11 +33,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         await user.update({ firstName, lastName: lastName || undefined });
     };
 
-    const updateAvatar = async (fileUri: string) => {
+    const updateAvatar = async (dataUri: string) => {
         if (!user) return;
-        const response = await fetch(fileUri);
-        const blob = await response.blob();
-        await user.setProfileImage({ file: blob });
+        await user.setProfileImage({ file: dataUri });
     };
 
     return (
