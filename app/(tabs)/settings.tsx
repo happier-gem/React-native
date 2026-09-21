@@ -9,8 +9,9 @@ import {
   View,
 } from "react-native";
 import React, { useState } from "react";
-import { Link } from "expo-router";
+import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@clerk/expo";
 import { useAccount } from "@/context/account-context";
 import { accentPresets, ThemeMode, useAppTheme } from "@/context/theme-context";
 import { currencyOptions, useCurrency } from "@/context/currency-context";
@@ -74,10 +75,12 @@ const EditAccountModal = ({
   const { colors } = useAppTheme();
   const { account, updateAccount } = useAccount();
   const [name, setName] = useState(account.name);
-  const [email, setEmail] = useState(account.email);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    updateAccount({ name: name.trim() || account.name, email: email.trim() || account.email });
+  const handleSave = async () => {
+    setSaving(true);
+    await updateAccount({ name: name.trim() || account.name });
+    setSaving(false);
     onClose();
   };
 
@@ -106,23 +109,25 @@ const EditAccountModal = ({
           />
 
           <ThemedText className="text-sm font-semibold mb-2">Email</ThemedText>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@example.com"
-            placeholderTextColor={colors.mutedForeground}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            style={fieldStyle}
-            className="border rounded-2xl px-4 py-3.5 mb-6"
-          />
+          <View
+            style={{ backgroundColor: colors.muted, borderColor: colors.border }}
+            className="border rounded-2xl px-4 py-3.5 mb-1"
+          >
+            <ThemedText tone="muted">{account.email}</ThemedText>
+          </View>
+          <ThemedText tone="muted" className="text-xs mb-6">
+            Your email is tied to your account and can&apos;t be changed here.
+          </ThemedText>
 
           <Pressable
             onPress={handleSave}
+            disabled={saving}
+            style={{ opacity: saving ? 0.7 : 1 }}
             className="rounded-2xl bg-primary p-4 items-center mb-3"
           >
-            <Text className="text-base font-semibold text-white">Save</Text>
+            <Text className="text-base font-semibold text-white">
+              {saving ? "Saving..." : "Save"}
+            </Text>
           </Pressable>
           <Pressable onPress={onClose} className="p-3 items-center">
             <ThemedText tone="muted" className="text-base font-semibold">
@@ -311,9 +316,15 @@ const Settings = () => {
   const { account } = useAccount();
   const { colors, accent } = useAppTheme();
   const { currency } = useCurrency();
+  const { signOut } = useAuth();
 
   const accentName =
     accentPresets.find((preset) => preset.hex === accent)?.name ?? "Custom";
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace("/(auth)/sign-in");
+  };
 
   return (
     <ThemedSafeAreaView>
@@ -331,7 +342,7 @@ const Settings = () => {
         <Pressable onPress={() => setEditAccountVisible(true)}>
           <Card className="flex-row items-center rounded-2xl p-4 mb-6">
             <Image
-              source={require("@/assets/images/avatar.png")}
+              source={account.imageUrl ? { uri: account.imageUrl } : require("@/assets/images/avatar.png")}
               resizeMode="cover"
               className="w-14 h-14 rounded-full mr-4"
             />
@@ -383,13 +394,14 @@ const Settings = () => {
           <SettingsRow label="Version" value="1.0.0" last />
         </Card>
 
-        <Link href="/(auth)/sign-in" asChild>
-          <Pressable className="rounded-2xl border border-destructive p-4 items-center">
-            <Text className="text-base font-semibold text-destructive">
-              Sign Out
-            </Text>
-          </Pressable>
-        </Link>
+        <Pressable
+          onPress={handleSignOut}
+          className="rounded-2xl border border-destructive p-4 items-center"
+        >
+          <Text className="text-base font-semibold text-destructive">
+            Sign Out
+          </Text>
+        </Pressable>
       </ScrollView>
 
       <EditAccountModal

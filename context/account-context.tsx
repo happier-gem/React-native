@@ -1,27 +1,39 @@
-import React, { createContext, ReactNode, useContext, useState } from "react";
+import React, { createContext, ReactNode, useContext, useMemo } from "react";
+import { useUser } from "@clerk/expo";
 
 export type Account = {
     name: string;
     email: string;
+    imageUrl: string | null;
 };
 
 type AccountContextValue = {
     account: Account;
-    updateAccount: (account: Account) => void;
-};
-
-const defaultAccount: Account = {
-    name: "Your Account",
-    email: "you@example.com",
+    updateAccount: (update: { name: string }) => Promise<void>;
 };
 
 const AccountContext = createContext<AccountContextValue | undefined>(undefined);
 
 export function AccountProvider({ children }: { children: ReactNode }) {
-    const [account, setAccount] = useState<Account>(defaultAccount);
+    const { user } = useUser();
+
+    const account = useMemo<Account>(() => ({
+        name: user?.fullName?.trim() || user?.firstName?.trim() || "Your Account",
+        email: user?.primaryEmailAddress?.emailAddress ?? "",
+        imageUrl: user?.imageUrl ?? null,
+    }), [user]);
+
+    const updateAccount = async ({ name }: { name: string }) => {
+        const trimmed = name.trim();
+        if (!user || !trimmed) return;
+
+        const [firstName, ...rest] = trimmed.split(" ");
+        const lastName = rest.join(" ");
+        await user.update({ firstName, lastName: lastName || undefined });
+    };
 
     return (
-        <AccountContext.Provider value={{ account, updateAccount: setAccount }}>
+        <AccountContext.Provider value={{ account, updateAccount }}>
             {children}
         </AccountContext.Provider>
     );
