@@ -398,7 +398,7 @@ const Settings = () => {
           onPress={handleSignOut}
           className="rounded-2xl border border-destructive p-4 items-center"
         >
-          <Text className="text-base font-semibold text-destructive">
+          <Text className="text-base font-semibold text-destructive" numberOfLines={1}>
             Sign Out
           </Text>
         </Pressable>
