@@ -64,3 +64,31 @@ export async function listUsers(filters: UserFilters): Promise<UserListResult> {
     return { ok: false, error: e instanceof Error ? e.message : "Unknown error" };
   }
 }
+
+export type UserStats =
+  | { ok: true; total: number; active: number; banned: number; sampledAllUsers: boolean }
+  | { ok: false; error: string };
+
+/**
+ * Clerk's Backend API has no "active"/"banned" count filter, so this fetches
+ * up to its max page size (500) and counts locally. For an instance with more
+ * than 500 users, active/banned are counted over that first page only —
+ * `sampledAllUsers` says whether that happened.
+ */
+export async function getUserStats(): Promise<UserStats> {
+  try {
+    const clerk = await clerkClient();
+    const { data, totalCount } = await clerk.users.getUserList({ limit: 500 });
+    const banned = data.filter((u) => u.banned).length;
+
+    return {
+      ok: true,
+      total: totalCount,
+      active: data.length - banned,
+      banned,
+      sampledAllUsers: totalCount <= data.length,
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Unknown error" };
+  }
+}

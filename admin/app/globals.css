@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Dark mode is toggled manually (a `dark` class on <html>), not by OS
+   preference alone, so the admin's theme setting actually controls the UI.
+   See app/layout.tsx (cookie -> class) and the inline script there (handles
+   the "system" option by matching the OS preference before first paint). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -12,21 +18,9 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  html:not(.light):not(.dark) {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 html.dark {
   --background: #0a0a0a;
   --foreground: #ededed;
-}
-
-html.light {
-  --background: #ffffff;
-  --foreground: #171717;
 }
 
 body {
