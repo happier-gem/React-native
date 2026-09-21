@@ -2,15 +2,13 @@ import { Pressable, ScrollView, View } from "react-native";
 import React, { useEffect } from "react";
 import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { daysUntil, formatDaysUntil } from "@/constants/data";
-import { useSubscriptions } from "@/context/subscriptions-context";
+import { formatDaysUntil } from "@/constants/data";
 import { useCurrency } from "@/context/currency-context";
 import { useAppTheme } from "@/context/theme-context";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 import { BrandIcon } from "@/components/brand-icon";
 import { dismissAllDisplayedNotifications } from "@/lib/notifications";
-
-const RENEWAL_WINDOW_DAYS = 7;
+import { useSubscriptionAlerts } from "@/hooks/use-subscription-alerts";
 
 const BackLink = () => (
   <Link href="/home" asChild>
@@ -23,22 +21,13 @@ const BackLink = () => (
 );
 
 const Notifications = () => {
-  const { activeSubscriptions, subscriptions } = useSubscriptions();
+  const { renewingSoon, canceled, hasAlerts } = useSubscriptionAlerts();
   const { format } = useCurrency();
   const { colors, accent } = useAppTheme();
 
   useEffect(() => {
     dismissAllDisplayedNotifications();
   }, []);
-
-  const renewingSoon = activeSubscriptions
-    .map((sub) => ({ sub, days: daysUntil(sub.renewalDate) }))
-    .filter(({ days }) => days <= RENEWAL_WINDOW_DAYS)
-    .sort((a, b) => a.days - b.days);
-
-  const canceled = subscriptions.filter((sub) => sub.status === "canceled");
-
-  const hasNotifications = renewingSoon.length > 0 || canceled.length > 0;
 
   return (
     <ThemedSafeAreaView>
@@ -52,7 +41,7 @@ const Notifications = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 96 }}
       >
-        {!hasNotifications ? (
+        {!hasAlerts ? (
           <View className="items-center mt-16">
             <Ionicons name="notifications-outline" size={40} color={colors.mutedForeground} />
             <ThemedText tone="muted" className="text-sm mt-3">
