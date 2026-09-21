@@ -18,6 +18,7 @@ import { accentPresets, ThemeMode, useAppTheme } from "@/context/theme-context";
 import { currencyOptions, useCurrency } from "@/context/currency-context";
 import { useNotificationsSettings } from "@/context/notifications-context";
 import { sendTestNotifications } from "@/lib/notifications";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 
 const SettingsRow = ({
@@ -383,6 +384,7 @@ const Settings = () => {
   const { currency } = useCurrency();
   const { signOut } = useAuth();
   const { enabled: notificationsEnabled, setEnabled: setNotificationsEnabled } = useNotificationsSettings();
+  const isAdmin = useIsAdmin();
 
   const accentName =
     accentPresets.find((preset) => preset.hex === accent)?.name ?? "Custom";
@@ -463,6 +465,21 @@ const Settings = () => {
             />
           </Pressable>
         </Card>
+
+        {isAdmin ? (
+          <Pressable onPress={() => router.push("/(admin)")}>
+            <Card className="flex-row items-center rounded-2xl p-4 mb-6">
+              <View
+                className="w-9 h-9 rounded-full items-center justify-center mr-3"
+                style={{ backgroundColor: accent + "26" }}
+              >
+                <Ionicons name="shield-checkmark-outline" size={18} color={accent} />
+              </View>
+              <ThemedText className="text-base font-semibold flex-1">Admin Dashboard</ThemedText>
+              <ThemedText tone="muted">{">"}</ThemedText>
+            </Card>
+          </Pressable>
+        ) : null}
 
         <ThemedText tone="muted" className="text-sm font-semibold mb-2">
           About
