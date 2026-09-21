@@ -29,6 +29,9 @@ export async function requestNotificationPermission() {
 }
 
 const renewalReminderId = (subscriptionId: string) => `renewal-${subscriptionId}`;
+const canceledNotificationId = (subscriptionId: string) => `canceled-${subscriptionId}`;
+const TEST_RENEWAL_ID = "test-renewal";
+const TEST_CANCELED_ID = "test-canceled";
 
 export async function scheduleRenewalReminder(
     subscriptionId: string,
@@ -46,6 +49,7 @@ export async function scheduleRenewalReminder(
         content: {
             title: `${name} renews soon`,
             body: `Your ${name} subscription renews in ${RENEWAL_REMINDER_DAYS_BEFORE} days.`,
+            autoDismiss: true,
         },
         trigger: {
             type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -63,29 +67,43 @@ export async function cancelAllScheduledNotifications() {
     await Notifications.cancelAllScheduledNotificationsAsync();
 }
 
-export async function notifySubscriptionCanceled(name: string) {
+export async function notifySubscriptionCanceled(subscriptionId: string, name: string) {
+    await Notifications.dismissNotificationAsync(canceledNotificationId(subscriptionId)).catch(() => {});
     await Notifications.scheduleNotificationAsync({
+        identifier: canceledNotificationId(subscriptionId),
         content: {
             title: "Subscription canceled",
             body: `${name} has been canceled.`,
+            autoDismiss: true,
         },
         trigger: null,
     });
 }
 
 export async function sendTestNotifications() {
+    await Notifications.dismissNotificationAsync(TEST_RENEWAL_ID).catch(() => {});
+    await Notifications.dismissNotificationAsync(TEST_CANCELED_ID).catch(() => {});
+
     await Notifications.scheduleNotificationAsync({
+        identifier: TEST_RENEWAL_ID,
         content: {
             title: "Spotify renews soon",
             body: `Your Spotify subscription renews in ${RENEWAL_REMINDER_DAYS_BEFORE} days.`,
+            autoDismiss: true,
         },
         trigger: null,
     });
     await Notifications.scheduleNotificationAsync({
+        identifier: TEST_CANCELED_ID,
         content: {
             title: "Subscription canceled",
             body: "Figma has been canceled.",
+            autoDismiss: true,
         },
         trigger: null,
     });
+}
+
+export async function dismissAllDisplayedNotifications() {
+    await Notifications.dismissAllNotificationsAsync();
 }

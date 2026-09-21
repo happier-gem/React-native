@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, View } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { daysUntil, formatDaysUntil } from "@/constants/data";
@@ -8,6 +8,7 @@ import { useCurrency } from "@/context/currency-context";
 import { useAppTheme } from "@/context/theme-context";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 import { BrandIcon } from "@/components/brand-icon";
+import { dismissAllDisplayedNotifications } from "@/lib/notifications";
 
 const RENEWAL_WINDOW_DAYS = 7;
 
@@ -25,6 +26,10 @@ const Notifications = () => {
   const { activeSubscriptions, subscriptions } = useSubscriptions();
   const { format } = useCurrency();
   const { colors, accent } = useAppTheme();
+
+  useEffect(() => {
+    dismissAllDisplayedNotifications();
+  }, []);
 
   const renewingSoon = activeSubscriptions
     .map((sub) => ({ sub, days: daysUntil(sub.renewalDate) }))

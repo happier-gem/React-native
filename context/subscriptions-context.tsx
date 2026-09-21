@@ -72,7 +72,7 @@ export function SubscriptionsProvider({ children }: { children: ReactNode }) {
         );
         cancelRenewalReminder(id);
         if (notificationsEnabled && target) {
-            notifySubscriptionCanceled(target.name);
+            notifySubscriptionCanceled(id, target.name);
         }
     };
 
