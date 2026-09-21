@@ -13,10 +13,20 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  html:not(.light):not(.dark) {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
+}
+
+html.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+html.light {
+  --background: #ffffff;
+  --foreground: #171717;
 }
 
 body {
