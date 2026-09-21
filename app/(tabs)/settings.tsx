@@ -17,6 +17,7 @@ import { useAccount } from "@/context/account-context";
 import { accentPresets, ThemeMode, useAppTheme } from "@/context/theme-context";
 import { currencyOptions, useCurrency } from "@/context/currency-context";
 import { useNotificationsSettings } from "@/context/notifications-context";
+import { sendTestNotifications } from "@/lib/notifications";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 
 const SettingsRow = ({
@@ -391,6 +392,14 @@ const Settings = () => {
     router.replace("/(auth)/sign-in");
   };
 
+  const handleSendTestNotification = async () => {
+    if (!notificationsEnabled) {
+      const granted = await setNotificationsEnabled(true);
+      if (!granted) return;
+    }
+    await sendTestNotifications();
+  };
+
   return (
     <ThemedSafeAreaView>
       <ScrollView
@@ -439,6 +448,9 @@ const Settings = () => {
               thumbColor="#ffffff"
             />
           </View>
+          <Pressable onPress={handleSendTestNotification}>
+            <SettingsRow label="Send test notification" icon="paper-plane-outline" />
+          </Pressable>
           <Pressable onPress={() => setCurrencyPickerVisible(true)}>
             <SettingsRow label="Currency" value={currency.code} />
           </Pressable>

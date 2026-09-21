@@ -72,3 +72,20 @@ export async function notifySubscriptionCanceled(name: string) {
         trigger: null,
     });
 }
+
+export async function sendTestNotifications() {
+    await Notifications.scheduleNotificationAsync({
+        content: {
+            title: "Spotify renews soon",
+            body: `Your Spotify subscription renews in ${RENEWAL_REMINDER_DAYS_BEFORE} days.`,
+        },
+        trigger: null,
+    });
+    await Notifications.scheduleNotificationAsync({
+        content: {
+            title: "Subscription canceled",
+            body: "Figma has been canceled.",
+        },
+        trigger: null,
+    });
+}
