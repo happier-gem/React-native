@@ -467,7 +467,7 @@ const Settings = () => {
         </Card>
 
         {isAdmin ? (
-          <Pressable onPress={() => router.push("/(admin)/index")}>
+          <Pressable onPress={() => router.push("/(admin)")}>
             <Card className="flex-row items-center rounded-2xl p-4 mb-6">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"

@@ -16,5 +16,5 @@ export default function App() {
     return <Redirect href="/(auth)/sign-in" />;
   }
 
-  return <Redirect href={isAdmin ? "/(admin)/index" : "/(tabs)/home"} />;
+  return <Redirect href={isAdmin ? "/(admin)" : "/(tabs)/home"} />;
 }

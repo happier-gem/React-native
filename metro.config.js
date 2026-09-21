@@ -10,7 +10,7 @@ const config = getDefaultConfig(__dirname);
 const adminDir = path.join(__dirname, "admin").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 config.resolver.blockList = [
   ...[].concat(config.resolver.blockList ?? []),
-  new RegExp(`^${adminDir}[\\\\/].*`, "i"),
+  new RegExp(`^${adminDir}[\\\\/].*`),
 ];
 
 module.exports = withNativewind(config);
