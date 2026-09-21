@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
@@ -80,6 +80,13 @@ const EditAccountModal = ({
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState("");
+  const [avatarSuccess, setAvatarSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!avatarSuccess) return;
+    const timer = setTimeout(() => setAvatarSuccess(false), 2500);
+    return () => clearTimeout(timer);
+  }, [avatarSuccess]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -102,10 +109,12 @@ const EditAccountModal = ({
     if (result.canceled || !result.assets[0]?.base64) return;
 
     setAvatarError("");
+    setAvatarSuccess(false);
     setUploadingAvatar(true);
     try {
       const mimeType = result.assets[0].mimeType ?? "image/jpeg";
       await updateAvatar(`data:${mimeType};base64,${result.assets[0].base64}`);
+      setAvatarSuccess(true);
     } catch (err) {
       setAvatarError(err instanceof Error ? err.message : "Couldn't upload photo. Please try again.");
     } finally {
@@ -146,8 +155,8 @@ const EditAccountModal = ({
                 <Ionicons name="camera-outline" size={16} color="#ffffff" />
               </View>
             </View>
-            <ThemedText tone="muted" className="text-sm mt-2">
-              {uploadingAvatar ? "Uploading..." : "Tap to change photo"}
+            <ThemedText tone={avatarSuccess ? "accent" : "muted"} className="text-sm mt-2">
+              {uploadingAvatar ? "Uploading..." : avatarSuccess ? "Profile picture updated" : "Tap to change photo"}
             </ThemedText>
             {avatarError ? (
               <Text className="text-sm text-destructive mt-1 text-center">{avatarError}</Text>
@@ -365,7 +374,6 @@ const ThemeSwitcher = () => {
 };
 
 const Settings = () => {
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [editAccountVisible, setEditAccountVisible] = useState(false);
   const [accentPickerVisible, setAccentPickerVisible] = useState(false);
   const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
@@ -373,6 +381,7 @@ const Settings = () => {
   const { colors, accent } = useAppTheme();
   const { currency } = useCurrency();
   const { signOut } = useAuth();
+  const { enabled: notificationsEnabled, setEnabled: setNotificationsEnabled } = useNotificationsSettings();
 
   const accentName =
     accentPresets.find((preset) => preset.hex === accent)?.name ?? "Custom";
@@ -425,7 +434,7 @@ const Settings = () => {
             <ThemedText className="text-base">Notifications</ThemedText>
             <Switch
               value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
+              onValueChange={(value) => { void setNotificationsEnabled(value); }}
               trackColor={{ false: colors.border, true: accent }}
               thumbColor="#ffffff"
             />
