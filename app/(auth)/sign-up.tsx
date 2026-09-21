@@ -7,7 +7,7 @@ import { useAppTheme } from "@/context/theme-context"
 import { ThemedSafeAreaView, ThemedText } from "@/components/themed"
 
 const SignUp = () => {
-    const { colors } = useAppTheme()
+    const { colors, accent } = useAppTheme()
     const { signUp, fetchStatus } = useSignUp()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
@@ -16,6 +16,7 @@ const SignUp = () => {
     const [pendingVerification, setPendingVerification] = useState(false)
     const [showPassword, setShowPassword] = useState(true)
     const [showConfirmPassword, setShowConfirmPassword] = useState(true)
+    const [agreedToTerms, setAgreedToTerms] = useState(false)
     const [error, setError] = useState("")
 
     const isSubmitting = fetchStatus === "fetching"
@@ -38,11 +39,16 @@ const SignUp = () => {
             setError("Passwords don't match.")
             return
         }
+        if (!agreedToTerms) {
+            setError("You must agree to the Terms of Service and Privacy Policy to continue.")
+            return
+        }
         setError("")
 
         const { error: passwordError } = await signUp.password({
             emailAddress: email.trim(),
             password,
+            legalAccepted: true,
         })
         if (passwordError) {
             setError(passwordError.longMessage ?? passwordError.message)
@@ -72,6 +78,15 @@ const SignUp = () => {
         const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code: code.trim() })
         if (verifyError) {
             setError(verifyError.longMessage ?? verifyError.message)
+            return
+        }
+
+        if (signUp.status !== "complete") {
+            setError(
+                signUp.missingFields.length > 0
+                    ? `Still missing: ${signUp.missingFields.join(", ")}.`
+                    : "Sign-up could not be completed. Please try again."
+            )
             return
         }
 
@@ -179,6 +194,21 @@ const SignUp = () => {
                                     />
                                 </Pressable>
                             </View>
+
+                            <Pressable
+                                onPress={() => setAgreedToTerms((v) => !v)}
+                                className="flex-row items-center mb-2"
+                            >
+                                <Ionicons
+                                    name={agreedToTerms ? "checkbox" : "square-outline"}
+                                    size={20}
+                                    color={agreedToTerms ? accent : colors.mutedForeground}
+                                    style={{ marginRight: 8 }}
+                                />
+                                <ThemedText tone="muted" className="text-sm flex-1">
+                                    I agree to the Terms of Service and Privacy Policy
+                                </ThemedText>
+                            </Pressable>
                         </>
                     )}
 
