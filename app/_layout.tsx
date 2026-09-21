@@ -8,6 +8,7 @@ import { ThemeProvider, useAppTheme } from '@/context/theme-context';
 import { AccountProvider } from '@/context/account-context';
 import { CurrencyProvider } from '@/context/currency-context';
 import { SubscriptionsProvider } from '@/context/subscriptions-context';
+import { NotificationsProvider } from '@/context/notifications-context';
 import { ClerkProvider } from '@clerk/expo';
 import { tokenCache } from '@clerk/expo/token-cache';
 
@@ -45,10 +46,12 @@ export default function RootLayout() {
       <ThemeProvider>
         <AccountProvider>
           <CurrencyProvider>
-            <SubscriptionsProvider>
-              <AppStatusBar />
-              <Stack screenOptions={{ headerShown: false }} />
-            </SubscriptionsProvider>
+            <NotificationsProvider>
+              <SubscriptionsProvider>
+                <AppStatusBar />
+                <Stack screenOptions={{ headerShown: false }} />
+              </SubscriptionsProvider>
+            </NotificationsProvider>
           </CurrencyProvider>
         </AccountProvider>
       </ThemeProvider>

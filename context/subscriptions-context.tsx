@@ -1,6 +1,12 @@
-import React, { createContext, ReactNode, useContext, useMemo, useState } from "react";
+import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { IconKey } from "@/constants/icons";
 import { BillingCycle } from "@/constants/data";
+import {
+    cancelRenewalReminder,
+    notifySubscriptionCanceled,
+    scheduleRenewalReminder,
+} from "@/lib/notifications";
+import { useNotificationsSettings } from "@/context/notifications-context";
 
 export type SubscriptionStatus = "active" | "canceled";
 
@@ -57,11 +63,17 @@ const SubscriptionsContext = createContext<SubscriptionsContextValue | undefined
 
 export function SubscriptionsProvider({ children }: { children: ReactNode }) {
     const [subscriptions, setSubscriptions] = useState<Subscription[]>(initialSubscriptions);
+    const { enabled: notificationsEnabled } = useNotificationsSettings();
 
     const cancelSubscription = (id: string) => {
+        const target = subscriptions.find((sub) => sub.id === id);
         setSubscriptions((prev) =>
             prev.map((sub) => (sub.id === id ? { ...sub, status: "canceled" } : sub))
         );
+        cancelRenewalReminder(id);
+        if (notificationsEnabled && target) {
+            notifySubscriptionCanceled(target.name);
+        }
     };
 
     const renewSubscription = (id: string) => {
@@ -91,6 +103,13 @@ export function SubscriptionsProvider({ children }: { children: ReactNode }) {
         () => activeSubscriptions.reduce((sum, sub) => sum + monthlyEquivalent(sub), 0),
         [activeSubscriptions]
     );
+
+    useEffect(() => {
+        if (!notificationsEnabled) return;
+        activeSubscriptions.forEach((sub) => {
+            scheduleRenewalReminder(sub.id, sub.name, sub.renewalDate);
+        });
+    }, [notificationsEnabled, activeSubscriptions]);
 
     return (
         <SubscriptionsContext.Provider

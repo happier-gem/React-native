@@ -16,6 +16,7 @@ import { useAuth } from "@clerk/expo";
 import { useAccount } from "@/context/account-context";
 import { accentPresets, ThemeMode, useAppTheme } from "@/context/theme-context";
 import { currencyOptions, useCurrency } from "@/context/currency-context";
+import { useNotificationsSettings } from "@/context/notifications-context";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 
 const SettingsRow = ({

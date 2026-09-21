@@ -59,7 +59,8 @@
         {
           "photosPermission": "Allow $(PRODUCT_NAME) to access your photos to set your profile picture."
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,
