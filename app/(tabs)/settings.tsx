@@ -1,5 +1,7 @@
 import {
+  Alert,
   Image,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -386,6 +388,15 @@ const Settings = () => {
   const { enabled: notificationsEnabled, setEnabled: setNotificationsEnabled } = useNotificationsSettings();
   const isAdmin = useIsAdmin();
 
+  const handleOpenAdminDashboard = () => {
+    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+    if (!baseUrl) {
+      Alert.alert("Admin dashboard not configured", "Set EXPO_PUBLIC_API_BASE_URL in .env.local first.");
+      return;
+    }
+    Linking.openURL(`${baseUrl}/admin`);
+  };
+
   const accentName =
     accentPresets.find((preset) => preset.hex === accent)?.name ?? "Custom";
 
@@ -467,7 +478,7 @@ const Settings = () => {
         </Card>
 
         {isAdmin ? (
-          <Pressable onPress={() => router.push("/(admin)")}>
+          <Pressable onPress={handleOpenAdminDashboard}>
             <Card className="flex-row items-center rounded-2xl p-4 mb-6">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
@@ -475,8 +486,11 @@ const Settings = () => {
               >
                 <Ionicons name="shield-checkmark-outline" size={18} color={accent} />
               </View>
-              <ThemedText className="text-base font-semibold flex-1">Admin Dashboard</ThemedText>
-              <ThemedText tone="muted">{">"}</ThemedText>
+              <View className="flex-1">
+                <ThemedText className="text-base font-semibold">Admin Dashboard</ThemedText>
+                <ThemedText tone="muted" className="text-xs mt-0.5">Opens in your browser</ThemedText>
+              </View>
+              <Ionicons name="open-outline" size={18} color={colors.mutedForeground} />
             </Card>
           </Pressable>
         ) : null}

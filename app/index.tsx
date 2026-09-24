@@ -2,11 +2,9 @@ import "@/global.css";
 import { Redirect } from "expo-router";
 import React from "react";
 import { useAuth } from "@clerk/expo";
-import { useIsAdmin } from "@/hooks/use-is-admin";
 
 export default function App() {
   const { isLoaded, isSignedIn } = useAuth();
-  const isAdmin = useIsAdmin();
 
   if (!isLoaded) {
     return null;
@@ -16,5 +14,5 @@ export default function App() {
     return <Redirect href="/(auth)/sign-in" />;
   }
 
-  return <Redirect href={isAdmin ? "/(admin)" : "/(tabs)/home"} />;
+  return <Redirect href="/(tabs)/home" />;
 }
