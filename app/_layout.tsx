@@ -9,6 +9,7 @@ import { AccountProvider } from '@/context/account-context';
 import { CurrencyProvider } from '@/context/currency-context';
 import { SubscriptionsProvider } from '@/context/subscriptions-context';
 import { NotificationsProvider } from '@/context/notifications-context';
+import { NotificationReadProvider } from '@/context/notification-read-context';
 import { ClerkProvider } from '@clerk/expo';
 import { tokenCache } from '@clerk/expo/token-cache';
 
@@ -47,10 +48,12 @@ export default function RootLayout() {
         <AccountProvider>
           <CurrencyProvider>
             <NotificationsProvider>
-              <SubscriptionsProvider>
-                <AppStatusBar />
-                <Stack screenOptions={{ headerShown: false }} />
-              </SubscriptionsProvider>
+              <NotificationReadProvider>
+                <SubscriptionsProvider>
+                  <AppStatusBar />
+                  <Stack screenOptions={{ headerShown: false }} />
+                </SubscriptionsProvider>
+              </NotificationReadProvider>
             </NotificationsProvider>
           </CurrencyProvider>
         </AccountProvider>

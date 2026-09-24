@@ -25,6 +25,16 @@ const AddSubscription = () => {
   const [preset, setPreset] = useState(DEFAULT_BRAND_PRESET);
   const [saving, setSaving] = useState(false);
 
+  const handleCycleChange = (nextCycle: BillingCycle) => {
+    if (nextCycle === cycle) return;
+    const current = parseFloat(price);
+    if (!isNaN(current)) {
+      const converted = nextCycle === "yearly" ? current * 12 : current / 12;
+      setPrice((Math.round(converted * 100) / 100).toString());
+    }
+    setCycle(nextCycle);
+  };
+
   const handleSave = async () => {
     if (!name.trim()) {
       Alert.alert("Missing name", "Enter a subscription name.");
@@ -157,7 +167,7 @@ const AddSubscription = () => {
             return (
               <Pressable
                 key={option}
-                onPress={() => setCycle(option)}
+                onPress={() => handleCycleChange(option)}
                 className="flex-1 items-center py-3 rounded-xl"
                 style={{ backgroundColor: selected ? accent : "transparent" }}
               >
