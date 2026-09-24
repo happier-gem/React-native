@@ -519,6 +519,7 @@ const Settings = () => {
 
         <Pressable
           onPress={handleSignOut}
+          style={{ backgroundColor: colors.destructive + "14" }}
           className="rounded-2xl border border-destructive p-4 items-center"
         >
           <Text className="text-base font-semibold text-destructive" numberOfLines={1}>
