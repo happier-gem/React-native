@@ -2,25 +2,21 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-nati
 import React from "react";
 import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { daysUntil, formatMoney, formatRenewalDate } from "@/constants/data";
+import { formatMoney, formatRenewalDate } from "@/constants/data";
 import { ThemedSafeAreaView, ThemedText, Card } from "@/components/themed";
 import { BrandIcon } from "@/components/brand-icon";
 import { useAppTheme } from "@/context/theme-context";
 import { useSubscriptions } from "@/context/subscriptions-context";
-
-const NOTIFICATION_WINDOW_DAYS = 7;
+import { useSubscriptionAlerts } from "@/hooks/use-subscription-alerts";
 
 const Home = () => {
   const { colors } = useAppTheme();
   const { activeSubscriptions, subscriptions, spendByCurrency, loading, error, refresh } = useSubscriptions();
+  const { unreadCount } = useSubscriptionAlerts();
 
   const upcoming = [...activeSubscriptions]
     .sort((a, b) => a.renewalDate.localeCompare(b.renewalDate))
     .slice(0, 3);
-
-  const notificationCount =
-    activeSubscriptions.filter((sub) => daysUntil(sub.renewalDate) <= NOTIFICATION_WINDOW_DAYS).length +
-    subscriptions.filter((sub) => sub.status === "canceled").length;
 
   return (
     <ThemedSafeAreaView>
@@ -37,13 +33,13 @@ const Home = () => {
             <Pressable style={{ padding: 4 }}>
               <View>
                 <Ionicons name="notifications-outline" size={26} color={colors.foreground} />
-                {notificationCount > 0 ? (
+                {unreadCount > 0 ? (
                   <View
                     className="absolute -top-1 -right-1 rounded-full items-center justify-center"
                     style={{ backgroundColor: colors.destructive, minWidth: 16, height: 16, paddingHorizontal: 3 }}
                   >
                     <Text className="text-white text-[10px] font-bold">
-                      {notificationCount}
+                      {unreadCount}
                     </Text>
                   </View>
                 ) : null}

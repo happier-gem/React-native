@@ -21,13 +21,20 @@ const BackLink = () => (
 );
 
 const Notifications = () => {
-  const { renewingSoon, canceled, hasAlerts } = useSubscriptionAlerts();
+  const { renewingSoon, canceled, hasAlerts, markAllAsRead } = useSubscriptionAlerts();
   const { format } = useCurrency();
   const { colors, accent } = useAppTheme();
 
   useEffect(() => {
     dismissAllDisplayedNotifications();
   }, []);
+
+  // Marks whatever's currently visible as read — re-runs if the visible set
+  // changes while this screen stays mounted, so a newly-arriving alert also
+  // gets marked read rather than lingering as unread until next visit.
+  useEffect(() => {
+    markAllAsRead();
+  }, [renewingSoon, canceled, markAllAsRead]);
 
   return (
     <ThemedSafeAreaView>
