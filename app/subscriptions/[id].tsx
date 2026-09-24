@@ -107,7 +107,7 @@ const EditSubscriptionModal = ({
       <View className="flex-1 justify-end bg-black/40">
         {/* Fixed title — stays put while the fields below it scroll */}
         <View style={{ backgroundColor: colors.background, maxHeight: "88%" }} className="rounded-t-3xl">
-          <ThemedText className="text-xl font-extrabold px-6 pt-6 pb-4">
+          <ThemedText className="text-xl font-extrabold px-6 pt-6 pb-4 text-center">
             Edit subscription
           </ThemedText>
 

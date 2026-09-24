@@ -102,16 +102,21 @@ const AddSubscription = () => {
 
   return (
     <ThemedSafeAreaView>
-      {/* Fixed header — stays put while the form beneath it scrolls */}
-      <View className="px-5 pt-5 pb-2">
+      {/* Fixed header — stays put while the form beneath it scrolls. The back
+          button is absolutely positioned so the title centers on the row
+          itself, not just the space left over after the button. */}
+      <View
+        className="px-5 pt-5 pb-3"
+        style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}
+      >
         <Link href="/subscriptions" asChild>
-          <Pressable className="mb-4">
+          <Pressable style={{ position: "absolute", left: 20, zIndex: 1 }}>
             <ThemedText tone="accent" className="font-semibold">
               {"< Back"}
             </ThemedText>
           </Pressable>
         </Link>
-        <ThemedText className="text-3xl font-extrabold">
+        <ThemedText className="text-lg font-extrabold">
           Add subscription
         </ThemedText>
       </View>
