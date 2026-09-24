@@ -1,8 +1,7 @@
 import {Tabs, Redirect} from "expo-router";
 import {tabs} from "@/constants/data";
-import {View} from "react-native";
+import {Image, View} from "react-native";
 import { colors, components } from '@/constants/theme'
-import {Image} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/theme-context";
 import { useAuth } from "@clerk/expo";

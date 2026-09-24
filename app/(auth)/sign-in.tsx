@@ -134,7 +134,7 @@ const SignIn = () => {
                     </Pressable>
 
                     <View className="flex-row justify-center mt-6">
-                        <ThemedText tone="muted">Don't have an account? </ThemedText>
+                        <ThemedText tone="muted">Don&apos;t have an account? </ThemedText>
                         <Link href="/(auth)/sign-up" asChild>
                             <Pressable>
                                 <ThemedText tone="accent" className="font-semibold">

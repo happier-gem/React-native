@@ -45,7 +45,7 @@ const Notifications = () => {
           <View className="items-center mt-16">
             <Ionicons name="notifications-outline" size={40} color={colors.mutedForeground} />
             <ThemedText tone="muted" className="text-sm mt-3">
-              You're all caught up.
+              You&apos;re all caught up.
             </ThemedText>
           </View>
         ) : null}
