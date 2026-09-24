@@ -76,7 +76,11 @@ export async function findReusablePendingPayment(
   return (data as PaymentRecord | null) ?? null;
 }
 
-export type CreatePendingResult = { ok: true; row: PaymentRecord } | { ok: false; status: 500; error: string };
+export type CreatePendingResult =
+  | { ok: true; row: PaymentRecord; reused: boolean }
+  | { ok: false; status: 500; error: string };
+
+const POSTGRES_UNIQUE_VIOLATION = "23505";
 
 export async function createPendingPayment(input: {
   userId: string;
@@ -105,12 +109,29 @@ export async function createPendingPayment(input: {
     .select()
     .single();
 
-  if (error) return { ok: false, status: 500, error: safeServerError("createPendingPayment", error) };
-  return { ok: true, row: data as PaymentRecord };
+  if (error) {
+    // The (user_id, internal_reference) unique constraint is the ultimate
+    // duplicate-prevention backstop — the app-level checks in the initiate
+    // route can still race under concurrent requests. Rather than surface a
+    // raw 500 for what's actually a legitimate "already exists" case, look up
+    // and return the row that won the race.
+    if (error.code === POSTGRES_UNIQUE_VIOLATION) {
+      const existing = await findByInternalReference(input.userId, internalReference);
+      if (existing) return { ok: true, row: existing, reused: true };
+    }
+    return { ok: false, status: 500, error: safeServerError("createPendingPayment", error) };
+  }
+  return { ok: true, row: data as PaymentRecord, reused: false };
 }
 
+/** Guarded to PENDING only — once a payment has settled, its provider
+ * reference can never be reassigned, malicious or otherwise. */
 export async function attachProviderReference(id: string, providerReference: string): Promise<void> {
-  const { error } = await supabaseAdmin().from("payments").update({ provider_reference: providerReference }).eq("id", id);
+  const { error } = await supabaseAdmin()
+    .from("payments")
+    .update({ provider_reference: providerReference })
+    .eq("id", id)
+    .eq("status", "PENDING");
   if (error) safeServerError("attachProviderReference", error);
 }
 
