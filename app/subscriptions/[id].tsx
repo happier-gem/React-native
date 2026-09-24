@@ -1,4 +1,5 @@
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Pressable, Text, TextInput, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import React, { useState } from "react";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,7 +14,6 @@ import {
   SubscriptionEdits,
   useSubscriptions,
 } from "@/context/subscriptions-context";
-import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 
 const BackLink = () => (
   <Link href="/subscriptions" asChild>
@@ -38,7 +38,6 @@ const EditSubscriptionModal = ({
 }) => {
   const { colors, accent } = useAppTheme();
   const { updateSubscription } = useSubscriptions();
-  const keyboardHeight = useKeyboardHeight();
   const [name, setName] = useState(subscription.name);
   const [price, setPrice] = useState(subscription.price.toString());
   const [cycle, setCycle] = useState<BillingCycle>(subscription.cycle);
@@ -105,21 +104,19 @@ const EditSubscriptionModal = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        className="flex-1 justify-end bg-black/40"
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
+      <View className="flex-1 justify-end bg-black/40">
         {/* Fixed title — stays put while the fields below it scroll */}
         <View style={{ backgroundColor: colors.background, maxHeight: "88%" }} className="rounded-t-3xl">
           <ThemedText className="text-xl font-extrabold px-6 pt-6 pb-4">
             Edit subscription
           </ThemedText>
 
-          <ScrollView
-            className="px-6"
-            contentContainerStyle={{ paddingBottom: 24 + keyboardHeight }}
+          <KeyboardAwareScrollView
+            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            enableOnAndroid
+            extraScrollHeight={20}
           >
           <ThemedText className="text-sm font-semibold mb-2">Name</ThemedText>
           <TextInput
@@ -229,9 +226,9 @@ const EditSubscriptionModal = ({
               Cancel
             </ThemedText>
           </Pressable>
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 };

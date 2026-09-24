@@ -1,4 +1,5 @@
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import React, { useState } from "react";
 import { Link, router } from "expo-router";
 import { BillingCycle } from "@/constants/data";
@@ -8,7 +9,6 @@ import { BrandIcon } from "@/components/brand-icon";
 import { useAppTheme } from "@/context/theme-context";
 import { currencyOptions, useCurrency } from "@/context/currency-context";
 import { useSubscriptions } from "@/context/subscriptions-context";
-import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 
 const errorMessage = (e: unknown) => (e instanceof Error ? e.message : "Something went wrong.");
 
@@ -16,7 +16,6 @@ const AddSubscription = () => {
   const { colors, accent } = useAppTheme();
   const { currency } = useCurrency();
   const { addSubscription } = useSubscriptions();
-  const keyboardHeight = useKeyboardHeight();
 
   const [name, setName] = useState("");
   // Tracks the label we auto-filled into Name, so a later icon change can
@@ -117,16 +116,14 @@ const AddSubscription = () => {
         </ThemedText>
       </View>
 
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      <KeyboardAwareScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 64 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid
+        extraScrollHeight={20}
       >
-        <ScrollView
-          className="px-5"
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingTop: 4, paddingBottom: 64 + keyboardHeight }}
-        >
           <ThemedText className="text-sm font-semibold mb-2">Icon</ThemedText>
           <View className="flex-row flex-wrap mb-5" style={{ gap: 10 }}>
             {BRAND_PRESETS.map((option) => {
@@ -239,8 +236,7 @@ const AddSubscription = () => {
               <Text className="text-base font-semibold text-white">Add Subscription</Text>
             )}
           </Pressable>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </ThemedSafeAreaView>
   );
 };
