@@ -49,3 +49,33 @@ create index admin_audit_log_created_at_idx on public.admin_audit_log (created_a
 
 alter table public.subscriptions enable row level security;
 alter table public.admin_audit_log enable row level security;
+
+-- Payments for the app's own Starter/Pro plans (INFI-PAY), NOT the individual
+-- subscriptions users track (that's the `subscriptions` table above).
+create table public.payments (
+  id                  uuid primary key default gen_random_uuid(),
+  user_id             text not null,                               -- Clerk user id
+  plan                text not null check (plan in ('starter', 'pro')),
+  amount              numeric(12, 2) not null check (amount >= 0),  -- server-derived, never client-supplied
+  currency            text not null default 'MWK',
+  provider            text not null check (provider in ('airtel_money', 'tnm_mpamba')),
+  phone_number        text not null,
+  provider_reference  text,                                        -- INFI-PAY's transaction reference
+  internal_reference  text not null unique,                        -- our own idempotency reference
+  status              text not null default 'PENDING' check (status in ('PENDING', 'SUCCESS', 'FAILED', 'CANCELLED')),
+  failure_reason      text,
+  metadata            jsonb not null default '{}'::jsonb,
+  created_at          timestamptz not null default now(),
+  completed_at        timestamptz,
+  updated_at          timestamptz not null default now()
+);
+
+create index payments_user_id_idx on public.payments (user_id);
+create index payments_provider_reference_idx on public.payments (provider_reference);
+create index payments_created_at_idx on public.payments (created_at desc);
+
+create trigger payments_set_updated_at
+  before update on public.payments
+  for each row execute function public.set_updated_at();
+
+alter table public.payments enable row level security;
