@@ -28,12 +28,14 @@ const SettingsRow = ({
   value,
   swatchColor,
   icon,
+  iconBadgeColor,
   last,
 }: {
   label: string;
   value?: string;
   swatchColor?: string;
   icon?: keyof typeof Ionicons.glyphMap;
+  iconBadgeColor?: string;
   last?: boolean;
 }) => {
   const { colors } = useAppTheme();
@@ -42,16 +44,18 @@ const SettingsRow = ({
       style={{ borderBottomWidth: last ? 0 : 1, borderBottomColor: colors.border }}
       className="flex-row items-center justify-between py-4"
     >
-      <ThemedText className="text-base">{label}</ThemedText>
       <View className="flex-row items-center">
         {icon ? (
-          <Ionicons
-            name={icon}
-            size={18}
-            color={colors.mutedForeground}
-            style={{ marginRight: 8 }}
-          />
+          <View
+            className="w-8 h-8 rounded-full items-center justify-center mr-3"
+            style={{ backgroundColor: (iconBadgeColor ?? colors.mutedForeground) + "26" }}
+          >
+            <Ionicons name={icon} size={16} color={iconBadgeColor ?? colors.mutedForeground} />
+          </View>
         ) : null}
+        <ThemedText className="text-base">{label}</ThemedText>
+      </View>
+      <View className="flex-row items-center">
         {swatchColor ? (
           <View
             className="w-7 h-7 rounded-full mr-2"
@@ -426,22 +430,26 @@ const Settings = () => {
         <ThemeSwitcher />
 
         <Pressable onPress={() => setEditAccountVisible(true)}>
-          <Card className="flex-row items-center rounded-2xl p-4 mb-6">
+          <View
+            className="flex-row items-center rounded-2xl p-4 mb-6"
+            style={{ backgroundColor: accent }}
+          >
             <Image
               source={account.imageUrl ? { uri: account.imageUrl } : require("@/assets/images/avatar.png")}
               resizeMode="cover"
               className="w-14 h-14 rounded-full mr-4"
+              style={{ borderWidth: 2, borderColor: "#ffffff" }}
             />
             <View className="flex-1">
-              <ThemedText className="text-base font-semibold">
+              <ThemedText tone="white" className="text-base font-semibold">
                 {account.name}
               </ThemedText>
-              <ThemedText tone="muted" className="text-sm mt-0.5">
+              <ThemedText tone="white" className="text-sm mt-0.5 opacity-80">
                 {account.email}
               </ThemedText>
             </View>
-            <ThemedText tone="muted">{">"}</ThemedText>
-          </Card>
+            <ThemedText tone="white" className="opacity-80">{">"}</ThemedText>
+          </View>
         </Pressable>
 
         <ThemedText tone="muted" className="text-sm font-semibold mb-2">
@@ -452,7 +460,15 @@ const Settings = () => {
             style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
             className="flex-row items-center justify-between py-4"
           >
-            <ThemedText className="text-base">Notifications</ThemedText>
+            <View className="flex-row items-center">
+              <View
+                className="w-8 h-8 rounded-full items-center justify-center mr-3"
+                style={{ backgroundColor: accent + "26" }}
+              >
+                <Ionicons name="notifications-outline" size={16} color={accent} />
+              </View>
+              <ThemedText className="text-base">Notifications</ThemedText>
+            </View>
             <Switch
               value={notificationsEnabled}
               onValueChange={(value) => { void setNotificationsEnabled(value); }}
@@ -461,10 +477,10 @@ const Settings = () => {
             />
           </View>
           <Pressable onPress={handleSendTestNotification}>
-            <SettingsRow label="Send test notification" icon="paper-plane-outline" />
+            <SettingsRow label="Send test notification" icon="paper-plane-outline" iconBadgeColor="#3b82f6" />
           </Pressable>
           <Pressable onPress={() => setCurrencyPickerVisible(true)}>
-            <SettingsRow label="Currency" value={currency.code} />
+            <SettingsRow label="Currency" value={currency.code} icon="cash-outline" iconBadgeColor={colors.success} />
           </Pressable>
           <Pressable onPress={() => setAccentPickerVisible(true)}>
             <SettingsRow
