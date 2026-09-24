@@ -62,6 +62,22 @@ const ForgotPassword = () => {
 
         const { error: verifyError } = await signIn.resetPasswordEmailCode.verifyCode({ code: code.trim() })
         if (verifyError) {
+            // The pending reset attempt can go stale if enough time passes between
+            // requesting the code and submitting it (e.g. switching apps to check
+            // email) — Clerk then rejects verifyCode() as if sendCode() was never
+            // called. Recoverable: send a fresh code under the same email rather
+            // than leaving the user stuck on a dead-end error.
+            const isStaleAttempt = verifyError.message?.toLowerCase().includes("send a verification code")
+            if (isStaleAttempt) {
+                const { error: resendError } = await signIn.resetPasswordEmailCode.sendCode()
+                setError(
+                    resendError
+                        ? (resendError.longMessage ?? resendError.message)
+                        : "That code expired. We've sent you a new one — check your email and enter the new code."
+                )
+                setCode("")
+                return
+            }
             setError(verifyError.longMessage ?? verifyError.message)
             return
         }
