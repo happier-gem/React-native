@@ -102,23 +102,23 @@ const AddSubscription = () => {
 
   return (
     <ThemedSafeAreaView>
-      {/* Fixed header — stays put while the form beneath it scrolls. The back
-          button is absolutely positioned so the title centers on the row
-          itself, not just the space left over after the button. */}
-      <View
-        className="px-5 pt-5 pb-3"
-        style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}
-      >
-        <Link href="/subscriptions" asChild>
-          <Pressable style={{ position: "absolute", left: 20, zIndex: 1 }}>
-            <ThemedText tone="accent" className="font-semibold">
-              {"< Back"}
-            </ThemedText>
-          </Pressable>
-        </Link>
-        <ThemedText className="text-lg font-extrabold">
+      {/* Fixed header — stays put while the form beneath it scrolls. Three-column
+          layout (back / title / matching spacer) so the title centers on the
+          true row width without overlapping the back button on narrow screens. */}
+      <View className="flex-row items-center px-5 pt-5 pb-3">
+        <View style={{ minWidth: 60 }}>
+          <Link href="/subscriptions" asChild>
+            <Pressable>
+              <ThemedText tone="accent" className="font-semibold">
+                {"< Back"}
+              </ThemedText>
+            </Pressable>
+          </Link>
+        </View>
+        <ThemedText className="flex-1 text-center text-lg font-extrabold">
           Add subscription
         </ThemedText>
+        <View style={{ minWidth: 60 }} />
       </View>
 
       <KeyboardAwareScrollView
@@ -233,7 +233,7 @@ const AddSubscription = () => {
             onPress={handleSave}
             disabled={saving}
             style={{ opacity: saving ? 0.7 : 1 }}
-            className="rounded-2xl bg-primary p-4 items-center"
+            className="w-full rounded-2xl bg-primary p-4 items-center"
           >
             {saving ? (
               <ActivityIndicator color="#ffffff" />

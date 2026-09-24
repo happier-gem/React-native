@@ -217,11 +217,11 @@ const EditSubscriptionModal = ({
             onPress={handleSave}
             disabled={saving}
             style={{ opacity: saving ? 0.7 : 1 }}
-            className="rounded-2xl bg-primary p-4 items-center mb-3"
+            className="w-full rounded-2xl bg-primary p-4 items-center mb-3"
           >
             {saving ? <ActivityIndicator color="#ffffff" /> : <Text className="text-base font-semibold text-white">Save</Text>}
           </Pressable>
-          <Pressable onPress={onClose} className="p-3 items-center">
+          <Pressable onPress={onClose} className="w-full p-3 items-center">
             <ThemedText tone="muted" className="text-base font-semibold">
               Cancel
             </ThemedText>
