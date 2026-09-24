@@ -8,6 +8,7 @@ import { BrandIcon } from "@/components/brand-icon";
 import { useAppTheme } from "@/context/theme-context";
 import { currencyOptions, useCurrency } from "@/context/currency-context";
 import { useSubscriptions } from "@/context/subscriptions-context";
+import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 
 const errorMessage = (e: unknown) => (e instanceof Error ? e.message : "Something went wrong.");
 
@@ -15,6 +16,7 @@ const AddSubscription = () => {
   const { colors, accent } = useAppTheme();
   const { currency } = useCurrency();
   const { addSubscription } = useSubscriptions();
+  const keyboardHeight = useKeyboardHeight();
 
   const [name, setName] = useState("");
   // Tracks the label we auto-filled into Name, so a later icon change can
@@ -123,7 +125,7 @@ const AddSubscription = () => {
           className="px-5"
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingTop: 4, paddingBottom: 64 }}
+          contentContainerStyle={{ paddingTop: 4, paddingBottom: 64 + keyboardHeight }}
         >
           <ThemedText className="text-sm font-semibold mb-2">Icon</ThemedText>
           <View className="flex-row flex-wrap mb-5" style={{ gap: 10 }}>

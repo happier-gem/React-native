@@ -13,6 +13,7 @@ import {
   SubscriptionEdits,
   useSubscriptions,
 } from "@/context/subscriptions-context";
+import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 
 const BackLink = () => (
   <Link href="/subscriptions" asChild>
@@ -37,6 +38,7 @@ const EditSubscriptionModal = ({
 }) => {
   const { colors, accent } = useAppTheme();
   const { updateSubscription } = useSubscriptions();
+  const keyboardHeight = useKeyboardHeight();
   const [name, setName] = useState(subscription.name);
   const [price, setPrice] = useState(subscription.price.toString());
   const [cycle, setCycle] = useState<BillingCycle>(subscription.cycle);
@@ -115,7 +117,7 @@ const EditSubscriptionModal = ({
 
           <ScrollView
             className="px-6"
-            contentContainerStyle={{ paddingBottom: 24 }}
+            contentContainerStyle={{ paddingBottom: 24 + keyboardHeight }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
