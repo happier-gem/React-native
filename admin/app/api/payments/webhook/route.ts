@@ -1,5 +1,6 @@
 import { verifyWebhookSignature } from "@/lib/infi-pay";
 import { getPaymentByProviderReference, transitionPaymentStatus } from "@/lib/payments";
+import { handleSuccessfulPayment } from "@/lib/plan-activation";
 
 // Server-to-server: INFI-PAY is the caller, not a mobile user, so this
 // deliberately does NOT call authenticateMobileRequest(). Authenticity comes
@@ -44,8 +45,13 @@ export async function POST(request: Request) {
   const result = await transitionPaymentStatus(payment.id, nextStatus, { failureReason: event.failureReason });
   if (!result.ok) return Response.json({ error: result.error }, { status: 500 });
 
-  // result.alreadyProcessed=true means this payment was already settled by an
-  // earlier delivery of this same event — still a 200, not an error, since
-  // repeated delivery must be safe (idempotent) rather than treated as a bug.
+  // Only call the activation hook on the delivery that actually caused the
+  // transition — never on a duplicate/replayed webhook for an
+  // already-settled payment (alreadyProcessed=true), which must stay a safe
+  // no-op rather than re-trigger activation.
+  if (nextStatus === "SUCCESS" && !result.alreadyProcessed) {
+    await handleSuccessfulPayment(payment);
+  }
+
   return Response.json({ ok: true, alreadyProcessed: result.alreadyProcessed });
 }

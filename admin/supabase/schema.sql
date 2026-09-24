@@ -60,19 +60,28 @@ create table public.payments (
   currency            text not null default 'MWK',
   provider            text not null check (provider in ('airtel_money', 'tnm_mpamba')),
   phone_number        text not null,
-  provider_reference  text,                                        -- INFI-PAY's transaction reference
-  internal_reference  text not null unique,                        -- our own idempotency reference
+  provider_reference  text,                                        -- INFI-PAY's transaction reference; globally unique once set
+  internal_reference  text not null,                                -- our own idempotency reference; unique per user, not globally
   status              text not null default 'PENDING' check (status in ('PENDING', 'SUCCESS', 'FAILED', 'CANCELLED')),
   failure_reason      text,
   metadata            jsonb not null default '{}'::jsonb,
   created_at          timestamptz not null default now(),
   completed_at        timestamptz,
-  updated_at          timestamptz not null default now()
+  updated_at          timestamptz not null default now(),
+  -- Per-user uniqueness, not global: a client-supplied idempotency key is
+  -- only meaningful scoped to its own user, otherwise two different users
+  -- independently choosing the same key string would collide.
+  unique (user_id, internal_reference)
 );
 
 create index payments_user_id_idx on public.payments (user_id);
-create index payments_provider_reference_idx on public.payments (provider_reference);
+create index payments_status_idx on public.payments (status);
 create index payments_created_at_idx on public.payments (created_at desc);
+-- Partial (not the whole-column) so multiple NULLs (not-yet-confirmed
+-- payments) are allowed, but any reference that IS set must be globally
+-- unique — this one really is global, unlike internal_reference above.
+create unique index payments_provider_reference_unique_idx
+  on public.payments (provider_reference) where provider_reference is not null;
 
 create trigger payments_set_updated_at
   before update on public.payments
