@@ -42,15 +42,15 @@ const Insights = () => {
       ) : (
         spendByCurrency.map((row) => (
           <View key={row.currency} className="flex-row mb-3" style={{ gap: 12 }}>
-            <Card className="flex-1 rounded-2xl p-4">
-              <ThemedText tone="muted" className="text-xs">Monthly{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</ThemedText>
-              <ThemedText className="text-2xl font-extrabold mt-1">
+            <Card className="flex-1 rounded-2xl p-4" style={{ backgroundColor: colors.primary }}>
+              <ThemedText tone="white" className="text-xs opacity-70">Monthly{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</ThemedText>
+              <ThemedText tone="white" className="text-2xl font-extrabold mt-1">
                 {formatMoney(row.monthly, row.currency)}
               </ThemedText>
             </Card>
-            <Card className="flex-1 rounded-2xl p-4">
-              <ThemedText tone="muted" className="text-xs">Yearly{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</ThemedText>
-              <ThemedText className="text-2xl font-extrabold mt-1">
+            <Card className="flex-1 rounded-2xl p-4" style={{ backgroundColor: accent }}>
+              <ThemedText tone="white" className="text-xs opacity-70">Yearly{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</ThemedText>
+              <ThemedText tone="white" className="text-2xl font-extrabold mt-1">
                 {formatMoney(row.yearly, row.currency)}
               </ThemedText>
             </Card>

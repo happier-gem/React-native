@@ -232,13 +232,15 @@ const AddSubscription = () => {
           <Pressable
             onPress={handleSave}
             disabled={saving}
-            style={{ opacity: saving ? 0.7 : 1 }}
+            style={{ opacity: saving ? 0.7 : 1, alignSelf: "stretch" }}
             className="w-full rounded-2xl bg-primary p-4 items-center"
           >
             {saving ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
-              <Text className="text-base font-semibold text-white">Add Subscription</Text>
+              <Text style={{ textAlign: "center", width: "100%" }} className="text-base font-semibold text-white">
+                Add Subscription
+              </Text>
             )}
           </Pressable>
       </KeyboardAwareScrollView>
