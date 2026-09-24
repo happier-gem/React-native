@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, Modal, Pressable, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import React, { useState } from "react";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -98,12 +98,22 @@ const EditSubscriptionModal = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/40">
-        <View style={{ backgroundColor: colors.background, maxHeight: "88%" }} className="rounded-t-3xl p-6">
-          <ThemedText className="text-xl font-extrabold mb-5">
+      <KeyboardAvoidingView
+        className="flex-1 justify-end bg-black/40"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        {/* Fixed title — stays put while the fields below it scroll */}
+        <View style={{ backgroundColor: colors.background, maxHeight: "88%" }} className="rounded-t-3xl">
+          <ThemedText className="text-xl font-extrabold px-6 pt-6 pb-4">
             Edit subscription
           </ThemedText>
 
+          <ScrollView
+            className="px-6"
+            contentContainerStyle={{ paddingBottom: 24 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
           <ThemedText className="text-sm font-semibold mb-2">Name</ThemedText>
           <TextInput
             value={name}
@@ -212,8 +222,9 @@ const EditSubscriptionModal = ({
               Cancel
             </ThemedText>
           </Pressable>
+          </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
