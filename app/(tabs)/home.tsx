@@ -10,7 +10,7 @@ import { useSubscriptions } from "@/context/subscriptions-context";
 import { useSubscriptionAlerts } from "@/hooks/use-subscription-alerts";
 
 const Home = () => {
-  const { colors } = useAppTheme();
+  const { colors, accent } = useAppTheme();
   const { activeSubscriptions, subscriptions, spendByCurrency, loading, error, refresh } = useSubscriptions();
   const { unreadCount } = useSubscriptionAlerts();
 
@@ -71,22 +71,22 @@ const Home = () => {
               </View>
             ) : (
               spendByCurrency.map((row) => (
-                <View key={row.currency} className="bg-primary rounded-2xl p-5 mb-3">
-                  <View className="flex-row">
-                    <View className="flex-1">
-                      <Text className="text-sm text-white/70">Monthly total{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</Text>
-                      <Text className="text-3xl font-extrabold text-white mt-1">
+                <View key={row.currency} className="mb-3">
+                  <View className="flex-row mb-3" style={{ gap: 12 }}>
+                    <View className="flex-1 rounded-2xl p-5" style={{ backgroundColor: colors.primary }}>
+                      <Text className="text-sm text-white/70">Monthly{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</Text>
+                      <Text className="text-2xl font-extrabold text-white mt-1">
                         {formatMoney(row.monthly, row.currency)}
                       </Text>
                     </View>
-                    <View className="flex-1">
-                      <Text className="text-sm text-white/70">Yearly total{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</Text>
-                      <Text className="text-3xl font-extrabold text-white mt-1">
+                    <View className="flex-1 rounded-2xl p-5" style={{ backgroundColor: accent }}>
+                      <Text className="text-sm text-white/70">Yearly{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</Text>
+                      <Text className="text-2xl font-extrabold text-white mt-1">
                         {formatMoney(row.yearly, row.currency)}
                       </Text>
                     </View>
                   </View>
-                  <Link href="/subscriptions" className="text-white/80 text-sm mt-3">
+                  <Link href="/subscriptions" className="text-sm" style={{ color: colors.mutedForeground }}>
                     View all subscriptions →
                   </Link>
                 </View>

@@ -85,29 +85,29 @@ const ListHeader = ({
   loadingSample: boolean;
 }) => {
   const { activeSubscriptions, spendByCurrency, subscriptions, loading } = useSubscriptions();
-  const { colors } = useAppTheme();
+  const { colors, accent } = useAppTheme();
 
   return (
     <View>
       {spendByCurrency.length > 0 ? (
         <View className="mb-5">
           {spendByCurrency.map((row) => (
-            <View key={row.currency} className="bg-primary rounded-2xl p-5 mb-3">
-              <View className="flex-row">
-                <View className="flex-1">
-                  <Text className="text-sm text-white/70">Monthly total{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</Text>
-                  <Text className="text-3xl font-extrabold text-white mt-1">
+            <View key={row.currency} className="mb-3">
+              <View className="flex-row mb-3" style={{ gap: 12 }}>
+                <View className="flex-1 rounded-2xl p-5" style={{ backgroundColor: colors.primary }}>
+                  <Text className="text-sm text-white/70">Monthly{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</Text>
+                  <Text className="text-2xl font-extrabold text-white mt-1">
                     {formatMoney(row.monthly, row.currency)}
                   </Text>
                 </View>
-                <View className="flex-1">
-                  <Text className="text-sm text-white/70">Yearly total{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</Text>
-                  <Text className="text-3xl font-extrabold text-white mt-1">
+                <View className="flex-1 rounded-2xl p-5" style={{ backgroundColor: accent }}>
+                  <Text className="text-sm text-white/70">Yearly{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</Text>
+                  <Text className="text-2xl font-extrabold text-white mt-1">
                     {formatMoney(row.yearly, row.currency)}
                   </Text>
                 </View>
               </View>
-              <Text className="text-xs text-white/70 mt-3">
+              <Text className="text-xs" style={{ color: colors.mutedForeground }}>
                 Across {activeSubscriptions.length} active subscription{activeSubscriptions.length === 1 ? "" : "s"}
               </Text>
             </View>
