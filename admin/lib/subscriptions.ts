@@ -4,6 +4,14 @@ import { addCycle, aggregateSpendByCurrency, monthlyEquivalent, type BillingCycl
 
 export type SubscriptionStatus = "active" | "canceled";
 
+/** Logs the real Supabase/Postgres error server-side (so it's still debuggable)
+ * and returns a generic message safe to send to a client — raw driver errors
+ * can reveal internal schema/column names and shouldn't reach end users. */
+function safeServerError(context: string, error: { message: string; code?: string }): string {
+  console.error(`[subscriptions:${context}]`, error);
+  return "Something went wrong on our end. Please try again.";
+}
+
 // Mirrors the `subscriptions` table in supabase/schema.sql.
 export type SubscriptionRecord = {
   id: string;
@@ -77,7 +85,7 @@ export async function listSubscriptionsForUser(userId: string): Promise<UserSubs
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: safeServerError("listSubscriptionsForUser", error) };
   return { ok: true, rows: (data ?? []) as SubscriptionRecord[] };
 }
 
@@ -188,7 +196,7 @@ export async function createSubscriptionForUser(
     .select()
     .single();
 
-  if (error) return { ok: false, status: 500, error: error.message };
+  if (error) return { ok: false, status: 500, error: safeServerError("createSubscriptionForUser", error) };
   return { ok: true, row: data as SubscriptionRecord };
 }
 
@@ -196,10 +204,10 @@ async function getOwnedSubscription(userId: string, id: string) {
   return supabaseAdmin().from("subscriptions").select("*").eq("id", id).eq("user_id", userId).single();
 }
 
-function mapMutationError(error: { code?: string; message: string }): { status: 404 | 500; error: string } {
+function mapMutationError(context: string, error: { code?: string; message: string }): { status: 404 | 500; error: string } {
   // PGRST116 = no row matched the filter (not found, or not owned by this user).
   if (error.code === "PGRST116") return { status: 404, error: "Subscription not found" };
-  return { status: 500, error: error.message };
+  return { status: 500, error: safeServerError(context, error) };
 }
 
 export async function updateSubscriptionForUser(
@@ -226,7 +234,7 @@ export async function updateSubscriptionForUser(
     .single();
 
   if (error) {
-    const mapped = mapMutationError(error);
+    const mapped = mapMutationError("updateSubscriptionForUser", error);
     return { ok: false, status: mapped.status, error: mapped.error };
   }
   return { ok: true, row: data as SubscriptionRecord };
@@ -242,7 +250,7 @@ export async function deleteSubscriptionForUser(
     .eq("id", id)
     .eq("user_id", userId);
 
-  if (error) return { ok: false, status: 500, error: error.message };
+  if (error) return { ok: false, status: 500, error: safeServerError("deleteSubscriptionForUser", error) };
   if (!count) return { ok: false, status: 404, error: "Subscription not found" };
   return { ok: true };
 }
@@ -257,7 +265,7 @@ export async function cancelSubscriptionForUser(userId: string, id: string): Pro
     .single();
 
   if (error) {
-    const mapped = mapMutationError(error);
+    const mapped = mapMutationError("cancelSubscriptionForUser", error);
     return { ok: false, status: mapped.status, error: mapped.error };
   }
   return { ok: true, row: data as SubscriptionRecord };
@@ -278,6 +286,6 @@ export async function renewSubscriptionForUser(userId: string, id: string): Prom
     .select()
     .single();
 
-  if (error) return { ok: false, status: 500, error: error.message };
+  if (error) return { ok: false, status: 500, error: safeServerError("renewSubscriptionForUser", error) };
   return { ok: true, row: data as SubscriptionRecord };
 }
