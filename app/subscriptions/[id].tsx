@@ -74,7 +74,12 @@ const EditSubscriptionModal = ({
       return;
     }
 
-    const preset = BRAND_PRESETS.find((p) => p.icon === icon);
+    // Only derive a new color from the preset table when the icon actually
+    // changed — otherwise always keep the subscription's existing color
+    // exactly as-is, so saving unrelated edits (price, date, ...) can never
+    // shift an icon's color.
+    const iconChanged = icon !== subscription.icon;
+    const preset = iconChanged ? BRAND_PRESETS.find((p) => p.icon === icon) : undefined;
     const edits: SubscriptionEdits = {
       name: name.trim(),
       price: parsedPrice,
@@ -82,7 +87,7 @@ const EditSubscriptionModal = ({
       category: category.trim(),
       renewalDate,
       icon,
-      brandColor: preset?.brandColor ?? subscription.brandColor,
+      brandColor: iconChanged ? (preset?.brandColor ?? subscription.brandColor) : subscription.brandColor,
     };
 
     setSaving(true);

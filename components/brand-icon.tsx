@@ -1,6 +1,7 @@
 import React from "react";
 import { Image, View } from "react-native";
-import { icons, IconKey } from "@/constants/icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { icons, isVectorIcon, vectorIcons, IconKey } from "@/constants/icons";
 
 export function BrandIcon({
     icon,
@@ -22,11 +23,15 @@ export function BrandIcon({
                 justifyContent: "center",
             }}
         >
-            <Image
-                source={icons[icon]}
-                resizeMode="contain"
-                style={{ width: size * 0.7, height: size * 0.7, borderRadius: size * 0.35 }}
-            />
+            {isVectorIcon(icon) ? (
+                <MaterialCommunityIcons name={vectorIcons[icon]} size={size * 0.6} color="#ffffff" />
+            ) : (
+                <Image
+                    source={icons[icon]}
+                    resizeMode="contain"
+                    style={{ width: size * 0.7, height: size * 0.7, borderRadius: size * 0.35 }}
+                />
+            )}
         </View>
     );
 }

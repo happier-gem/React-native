@@ -6,6 +6,8 @@ export type BrandPreset = { icon: IconKey; label: string; brandColor: string };
 // (constants/icons.ts) — this is the curated subset of those that are actual
 // service/brand logos, offered as presets when adding a subscription.
 export const BRAND_PRESETS: BrandPreset[] = [
+    { icon: "netflix", label: "Netflix", brandColor: "#E50914" },
+    { icon: "youtube", label: "YouTube", brandColor: "#FF0000" },
     { icon: "spotify", label: "Spotify", brandColor: "#1DB954" },
     { icon: "claude", label: "Claude", brandColor: "#DA7756" },
     { icon: "figma", label: "Figma", brandColor: "#A259FF" },

@@ -27,15 +27,14 @@ const Insights = () => {
 
   return (
     <ThemedSafeAreaView>
-      <ScrollView
-        className="px-5 pt-5"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 96 }}
-      >
-      <ThemedText className="text-3xl font-extrabold mb-5">
+      <ThemedText className="text-3xl font-extrabold px-5 pt-5 pb-2">
         Insights
       </ThemedText>
-
+      <ScrollView
+        className="px-5"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: 4, paddingBottom: 96 }}
+      >
       {spendByCurrency.length === 0 ? (
         <ThemedText tone="muted" className="text-sm mb-6">
           No active subscriptions yet.

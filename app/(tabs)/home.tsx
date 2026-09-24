@@ -20,33 +20,33 @@ const Home = () => {
 
   return (
     <ThemedSafeAreaView>
+      <View className="flex-row items-center justify-between px-5 pt-5 pb-2">
+        <ThemedText className="text-3xl font-extrabold">
+          Home
+        </ThemedText>
+        <Link href="/notifications" asChild>
+          <Pressable style={{ padding: 4 }}>
+            <View>
+              <Ionicons name="notifications-outline" size={26} color={colors.foreground} />
+              {unreadCount > 0 ? (
+                <View
+                  className="absolute -top-1 -right-1 rounded-full items-center justify-center"
+                  style={{ backgroundColor: colors.destructive, minWidth: 16, height: 16, paddingHorizontal: 3 }}
+                >
+                  <Text className="text-white text-[10px] font-bold">
+                    {unreadCount}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </Pressable>
+        </Link>
+      </View>
       <ScrollView
-        className="px-5 pt-5"
+        className="px-5"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 96 }}
+        contentContainerStyle={{ paddingTop: 4, paddingBottom: 96 }}
       >
-        <View className="flex-row items-center justify-between mb-5">
-          <ThemedText className="text-3xl font-extrabold">
-            Home
-          </ThemedText>
-          <Link href="/notifications" asChild>
-            <Pressable style={{ padding: 4 }}>
-              <View>
-                <Ionicons name="notifications-outline" size={26} color={colors.foreground} />
-                {unreadCount > 0 ? (
-                  <View
-                    className="absolute -top-1 -right-1 rounded-full items-center justify-center"
-                    style={{ backgroundColor: colors.destructive, minWidth: 16, height: 16, paddingHorizontal: 3 }}
-                  >
-                    <Text className="text-white text-[10px] font-bold">
-                      {unreadCount}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            </Pressable>
-          </Link>
-        </View>
 
         {loading && subscriptions.length === 0 ? (
           <View className="items-center py-16">

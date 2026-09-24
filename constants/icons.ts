@@ -38,4 +38,17 @@ export const icons = {
     canva,
 } as const;
 
-export type IconKey = keyof typeof icons;
+// Some brand presets have no bundled PNG asset — these render as a vector glyph
+// from @expo/vector-icons' MaterialCommunityIcons set instead (confirmed present
+// in the installed package), rather than adding new binary logo assets.
+export const vectorIcons = {
+    netflix: "netflix",
+    youtube: "youtube",
+} as const;
+
+export type RasterIconKey = keyof typeof icons;
+export type VectorIconKey = keyof typeof vectorIcons;
+export type IconKey = RasterIconKey | VectorIconKey;
+
+export const isVectorIcon = (key: string): key is VectorIconKey => key in vectorIcons;
+export const isValidIconKey = (key: string): key is IconKey => key in icons || key in vectorIcons;

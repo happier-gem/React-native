@@ -415,15 +415,14 @@ const Settings = () => {
 
   return (
     <ThemedSafeAreaView>
+      <ThemedText className="text-3xl font-extrabold px-5 pt-5 pb-2">
+        Settings
+      </ThemedText>
       <ScrollView
-        className="px-5 pt-5"
+        className="px-5"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 96 }}
+        contentContainerStyle={{ paddingTop: 4, paddingBottom: 96 }}
       >
-        <ThemedText className="text-3xl font-extrabold mb-5">
-          Settings
-        </ThemedText>
-
         <ThemeSwitcher />
 
         <Pressable onPress={() => setEditAccountVisible(true)}>

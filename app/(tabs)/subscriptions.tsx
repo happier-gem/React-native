@@ -89,20 +89,6 @@ const ListHeader = ({
 
   return (
     <View>
-      <View className="flex-row items-center justify-between mb-5">
-        <ThemedText className="text-3xl font-extrabold">
-          Subscriptions
-        </ThemedText>
-        <Link href="/subscriptions/add" asChild>
-          <Pressable
-            className="w-10 h-10 rounded-full bg-primary items-center justify-center"
-            accessibilityLabel="Add subscription"
-          >
-            <Ionicons name="add" size={22} color="#ffffff" />
-          </Pressable>
-        </Link>
-      </View>
-
       {spendByCurrency.length > 0 ? (
         <View className="mb-5">
           {spendByCurrency.map((row) => (
@@ -192,6 +178,19 @@ const Subscriptions = () => {
 
   return (
     <ThemedSafeAreaView>
+      <View className="flex-row items-center justify-between px-5 pt-5 pb-2">
+        <ThemedText className="text-3xl font-extrabold">
+          Subscriptions
+        </ThemedText>
+        <Link href="/subscriptions/add" asChild>
+          <Pressable
+            className="w-10 h-10 rounded-full bg-primary items-center justify-center"
+            accessibilityLabel="Add subscription"
+          >
+            <Ionicons name="add" size={22} color="#ffffff" />
+          </Pressable>
+        </Link>
+      </View>
       <FlatList
         data={subscriptions}
         keyExtractor={(item) => item.id}
@@ -200,8 +199,8 @@ const Subscriptions = () => {
           <ListHeader onTrySampleData={handleTrySampleData} loadingSample={loadingSample} />
         }
         showsVerticalScrollIndicator={false}
-        className="px-5 pt-5"
-        contentContainerStyle={{ paddingBottom: 96 }}
+        className="px-5"
+        contentContainerStyle={{ paddingTop: 4, paddingBottom: 96 }}
       />
     </ThemedSafeAreaView>
   );

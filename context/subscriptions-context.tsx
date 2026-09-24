@@ -1,6 +1,6 @@
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/expo";
-import { IconKey, icons } from "@/constants/icons";
+import { IconKey, isValidIconKey } from "@/constants/icons";
 import { BillingCycle } from "@/constants/data";
 import { DEFAULT_BRAND_PRESET } from "@/constants/brand-presets";
 import {
@@ -43,7 +43,7 @@ type ServerSubscription = {
 };
 
 const normalizeIcon = (value: string | null): IconKey =>
-    value && value in icons ? (value as IconKey) : DEFAULT_BRAND_PRESET.icon;
+    value && isValidIconKey(value) ? value : DEFAULT_BRAND_PRESET.icon;
 
 const fromServer = (row: ServerSubscription): Subscription => ({
     id: row.id,
