@@ -78,8 +78,5 @@ export async function POST(request: Request) {
 
   await attachProviderReference(created.row.id, collection.providerReference);
 
-  return Response.json(
-    { payment: toClientPayment({ ...created.row, provider_reference: collection.providerReference }) },
-    { status: 201 }
-  );
+  return Response.json({ payment: toClientPayment(created.row) }, { status: 201 });
 }
