@@ -8,7 +8,10 @@ export type SubscriptionStatus = "active" | "canceled";
  * and returns a generic message safe to send to a client — raw driver errors
  * can reveal internal schema/column names and shouldn't reach end users. */
 function safeServerError(context: string, error: { message: string; code?: string }): string {
-  console.error(`[subscriptions:${context}]`, error);
+  // Plain console.error(error) can log as "{}" for non-plain-object error shapes
+  // (e.g. a thrown Error, whose message/stack aren't own-enumerable) — capture
+  // every own property explicitly so failures are actually diagnosable server-side.
+  console.error(`[subscriptions:${context}]`, JSON.stringify(error, Object.getOwnPropertyNames(error)));
   return "Something went wrong on our end. Please try again.";
 }
 
