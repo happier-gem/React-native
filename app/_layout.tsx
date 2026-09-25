@@ -8,6 +8,7 @@ import { ThemeProvider, useAppTheme } from '@/context/theme-context';
 import { AccountProvider } from '@/context/account-context';
 import { CurrencyProvider } from '@/context/currency-context';
 import { SubscriptionsProvider } from '@/context/subscriptions-context';
+import { PlanProvider } from '@/context/plan-context';
 import { NotificationsProvider } from '@/context/notifications-context';
 import { NotificationReadProvider } from '@/context/notification-read-context';
 import { ClerkProvider } from '@clerk/expo';
@@ -50,8 +51,10 @@ export default function RootLayout() {
             <NotificationsProvider>
               <NotificationReadProvider>
                 <SubscriptionsProvider>
-                  <AppStatusBar />
-                  <Stack screenOptions={{ headerShown: false }} />
+                  <PlanProvider>
+                    <AppStatusBar />
+                    <Stack screenOptions={{ headerShown: false }} />
+                  </PlanProvider>
                 </SubscriptionsProvider>
               </NotificationReadProvider>
             </NotificationsProvider>

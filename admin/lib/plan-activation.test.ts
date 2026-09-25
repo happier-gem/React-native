@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
 import { activatePlanForPayment, type ActivationDeps } from "@/lib/plan-activation";
 import { getEffectiveUserPlan, syncUserPlan } from "@/lib/user-plans";
@@ -6,10 +6,10 @@ import { PLANS } from "@/lib/plans";
 import { createTestDb, getPaymentRow, insertPayment, pglitePlanStore, readSql, migrationFiles } from "@/test/pglite-db";
 
 // Audit entries are best-effort mirrors; capture them instead of hitting Supabase.
-const audited = vi.hoisted(() => [] as { action: string; targetUserId?: string }[]);
+const audited = vi.hoisted(() => [] as { action: string; targetUserId?: string; actorUserId?: string; metadata?: unknown }[]);
 vi.mock("@/lib/audit-log", () => ({
   SYSTEM_ACTOR: "system",
-  logAdminAction: async (entry: { action: string; targetUserId?: string }) => {
+  logAdminAction: async (entry: (typeof audited)[number]) => {
     audited.push(entry);
   },
 }));
