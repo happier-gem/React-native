@@ -71,7 +71,7 @@ create table public.payments (
   -- Per-user uniqueness, not global: a client-supplied idempotency key is
   -- only meaningful scoped to its own user, otherwise two different users
   -- independently choosing the same key string would collide.
-  unique (user_id, internal_reference)
+  constraint payments_user_internal_reference_key unique (user_id, internal_reference)
 );
 
 create index payments_user_id_idx on public.payments (user_id);
