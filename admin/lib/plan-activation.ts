@@ -2,6 +2,7 @@ import "server-only";
 import { getPaymentById, type PaymentRecord } from "@/lib/payments";
 import { applySuccessfulPayment, type PlanEvent } from "@/lib/plan-rules";
 import { auditPlanEvents, supabasePlanStore, type PlanStore } from "@/lib/user-plans";
+import { paymentLog } from "@/lib/payment-log";
 
 /**
  * ============================================================================
@@ -79,10 +80,23 @@ export async function activatePlanForPayment(
       });
 
       if (outcome === "applied") {
+        paymentLog("info", "activation.applied", {
+          source: "activation",
+          paymentId: payment.id,
+          userId: payment.user_id,
+          outcome: events.map((e) => e.event).join(","),
+        });
         await deps.audit(payment.user_id, events);
         return { ok: true, outcome: "applied", events };
       }
       if (outcome === "duplicate") return { ok: true, outcome: "duplicate" };
+      if (outcome === "invalid_payment") {
+        // The database's own check disagrees with what we read — e.g. the
+        // payment isn't SUCCESS any more, or belongs to someone else. Never
+        // retried blindly; reconciliation surfaces it as "success without plan".
+        paymentLog("error", "activation.invalid_payment", { source: "activation", paymentId: payment.id, userId: payment.user_id });
+        return { ok: false, error: "Payment failed database validation" };
+      }
       // conflict: another write landed between our read and write — recompute.
     }
 

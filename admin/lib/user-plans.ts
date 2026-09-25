@@ -45,7 +45,10 @@ export type UserPlanEventRow = {
 
 export type StoredUserPlan = { state: PlanState; version: number };
 
-export type TransitionOutcome = "applied" | "conflict" | "duplicate";
+/** See apply_user_plan_transition() in the migrations. "invalid_payment"
+ * means the database refused because an event's payment isn't a SUCCESS
+ * payment of this user for that plan (20260926000000_payment_hardening.sql). */
+export type TransitionOutcome = "applied" | "conflict" | "duplicate" | "invalid_payment";
 
 /**
  * Storage boundary for plan state. The production implementation is
@@ -133,7 +136,7 @@ export const supabasePlanStore: PlanStore = {
   async applyTransition(input) {
     const { data, error } = await supabaseAdmin().rpc("apply_user_plan_transition", toTransitionArgs(input));
     if (error) throw dbError("applyTransition", error);
-    if (data !== "applied" && data !== "conflict" && data !== "duplicate") {
+    if (data !== "applied" && data !== "conflict" && data !== "duplicate" && data !== "invalid_payment") {
       throw dbError("applyTransition", { message: `unexpected result ${String(data)}` });
     }
     return data;
@@ -202,7 +205,8 @@ export async function syncUserPlan(
     } catch {
       break; // already logged by the store
     }
-    // conflict (or an impossible duplicate — these events carry no payment):
+    // conflict (or an impossible duplicate/invalid_payment — these events
+    // carry no payment):
     // someone else wrote first; re-read and try again.
     stored = await store.getUserPlan(userId);
   }
