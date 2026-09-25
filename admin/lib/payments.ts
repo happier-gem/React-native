@@ -150,6 +150,28 @@ export async function getPaymentForUser(userId: string, id: string): Promise<Pay
   return (data as PaymentRecord | null) ?? null;
 }
 
+/** Server-internal lookup (plan activation) — never expose to a client route;
+ * client-facing lookups must use getPaymentForUser(). Throws on a DB error so
+ * the caller can distinguish "not found" from "couldn't check". */
+export async function getPaymentById(id: string): Promise<PaymentRecord | null> {
+  const { data, error } = await supabaseAdmin().from("payments").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(safeServerError("getPaymentById", error));
+  return (data as PaymentRecord | null) ?? null;
+}
+
+/** Most recent successful payments for a user, newest first (admin view). */
+export async function listSuccessfulPaymentsForUser(userId: string, limit: number): Promise<PaymentRecord[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("payments")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("status", "SUCCESS")
+    .order("completed_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(safeServerError("listSuccessfulPaymentsForUser", error));
+  return (data as PaymentRecord[] | null) ?? [];
+}
+
 export async function getPaymentByProviderReference(providerReference: string): Promise<PaymentRecord | null> {
   const { data } = await supabaseAdmin().from("payments").select("*").eq("provider_reference", providerReference).maybeSingle();
   return (data as PaymentRecord | null) ?? null;

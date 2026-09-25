@@ -1,7 +1,21 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-export type AuditAction = "user.ban" | "user.unban" | "user.delete";
+export type AuditAction =
+  | "user.ban"
+  | "user.unban"
+  | "user.delete"
+  // Plan changes are system events (actor SYSTEM_ACTOR), caused by a verified
+  // payment or by a plan lapsing — never by an admin.
+  | "plan.activated"
+  | "plan.renewed"
+  | "plan.upgraded"
+  | "plan.downgrade_scheduled"
+  | "plan.downgrade_applied"
+  | "plan.expired";
+
+/** actor_user_id for entries not caused by a signed-in admin. */
+export const SYSTEM_ACTOR = "system";
 
 /**
  * Best-effort audit trail for destructive/administrative actions. Never blocks

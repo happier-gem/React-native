@@ -45,12 +45,18 @@ export async function POST(request: Request) {
   const result = await transitionPaymentStatus(payment.id, nextStatus, { failureReason: event.failureReason });
   if (!result.ok) return Response.json({ error: result.error }, { status: 500 });
 
-  // Only call the activation hook on the delivery that actually caused the
-  // transition — never on a duplicate/replayed webhook for an
-  // already-settled payment (alreadyProcessed=true), which must stay a safe
-  // no-op rather than re-trigger activation.
-  if (nextStatus === "SUCCESS" && !result.alreadyProcessed) {
-    await handleSuccessfulPayment(payment);
+  // Activation is idempotent on its own (keyed on the payment id, see
+  // lib/plan-activation.ts), so it runs on replays too: a replay for an
+  // already-activated payment is a no-op, and a replay after a failed
+  // activation is what completes it. Activation re-reads the payment and only
+  // acts if the database says SUCCESS, so a SUCCESS replay for a payment that
+  // actually settled as FAILED grants nothing.
+  if (nextStatus === "SUCCESS") {
+    const activation = await handleSuccessfulPayment(payment);
+    if (!activation.ok) {
+      // Non-2xx so INFI-PAY retries delivery; the payment itself stays SUCCESS.
+      return Response.json({ error: "Plan activation failed" }, { status: 500 });
+    }
   }
 
   return Response.json({ ok: true, alreadyProcessed: result.alreadyProcessed });
