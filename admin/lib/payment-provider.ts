@@ -32,7 +32,9 @@ export type InitiateCollectionParams = {
   currency: string;
   phoneNumber: string;
   network: MobileMoneyNetwork;
-  /** Our internal_reference, for reconciliation on the provider's side. */
+  /** The globally unique reference this payment is known by at the provider
+   * (payments.provider_reference). INFI-PAY treats a repeated reference as the
+   * same transaction, which makes retrying an uncertain initiation safe. */
   reference: string;
 };
 
@@ -48,7 +50,15 @@ export type ProviderInitiateResult =
   | { kind: "uncertain"; reason: string };
 
 export type ProviderStatusResult =
-  | { kind: "status"; status: ProviderPaymentStatus; failureReason?: string }
+  | {
+      kind: "status";
+      status: ProviderPaymentStatus;
+      failureReason?: string;
+      /** What the provider says was charged — checked against our record
+       * before a SUCCESS is accepted. */
+      amount?: number;
+      currency?: string;
+    }
   /** The provider answered, but with a status we don't recognise. Never
    * treated as success or failure — flagged for investigation. */
   | { kind: "unknown_status"; rawStatus: string }
@@ -60,11 +70,19 @@ export type ProviderWebhookResult =
   | { kind: "malformed"; reason: string }
   /** Authentic, but not an event we act on (unknown type/status). */
   | { kind: "ignored"; reason: string }
-  | { kind: "payment_status"; providerReference: string; status: ProviderPaymentStatus; failureReason?: string };
+  /** A verified payment event. Treated as a prompt to re-check with the
+   * provider, never as the status itself. `reference` is our reference if the
+   * provider included it (INFI-PAY's documented payload doesn't), else null. */
+  | { kind: "payment_event"; reference: string | null; providerTransactionId: string | null; reportedStatus: ProviderPaymentStatus };
+
+export type PhoneCheck = { ok: true; normalized: string } | { ok: false; message: string };
 
 export interface PaymentProvider {
   readonly name: string;
   config(): ProviderConfigStatus;
+  /** Provider rules for the payer's number on this network; returns the form
+   * to store and send. */
+  checkPhoneNumber(phoneNumber: string, network: MobileMoneyNetwork): PhoneCheck;
   initiateCollection(params: InitiateCollectionParams): Promise<ProviderInitiateResult>;
   getTransactionStatus(providerReference: string): Promise<ProviderStatusResult>;
   /** Verifies authenticity BEFORE interpreting the payload. */

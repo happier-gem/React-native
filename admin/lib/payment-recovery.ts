@@ -55,6 +55,8 @@ export type RecoverySummary = {
   unknownStatus: number;
   providerUnavailable: number;
   noProviderReference: number;
+  /** Provider said SUCCESS but for a different amount/currency — not applied. */
+  amountMismatch: number;
   activationsRetried: number;
   activationsApplied: number;
   activationFailures: number;
@@ -92,7 +94,13 @@ const defaultDeps = (): RecoveryDeps => ({
  * transition, and activation is idempotent in the database.
  */
 export async function recoverPendingPayments(
-  opts: { limit?: number; deps?: Partial<RecoveryDeps> } = {}
+  opts: {
+    limit?: number;
+    /** Override the policy's minimum age — a verified webhook uses 0 to check
+     * recent payments immediately. */
+    minAgeMinutes?: number;
+    deps?: Partial<RecoveryDeps>;
+  } = {}
 ): Promise<RecoverySummary> {
   const deps = { ...defaultDeps(), ...opts.deps };
   const limit = opts.limit ?? DEFAULT_BATCH;
@@ -111,6 +119,7 @@ export async function recoverPendingPayments(
     unknownStatus: 0,
     providerUnavailable: 0,
     noProviderReference: 0,
+    amountMismatch: 0,
     activationsRetried: 0,
     activationsApplied: 0,
     activationFailures: 0,
@@ -127,7 +136,8 @@ export async function recoverPendingPayments(
   if (configured) {
     let pending: PaymentRecord[] = [];
     try {
-      pending = await deps.listPending(new Date(now.getTime() - policy.recoveryMinAgeMinutes * 60_000), limit);
+      const minAge = opts.minAgeMinutes ?? policy.recoveryMinAgeMinutes;
+      pending = await deps.listPending(new Date(now.getTime() - minAge * 60_000), limit);
     } catch {
       summary.errors++;
     }
@@ -155,6 +165,23 @@ export async function recoverPendingPayments(
         await deps.recordCheck(payment.id, { result: "status", status: res.status });
         if (res.status === "PENDING") {
           summary.stillPending++;
+          continue;
+        }
+
+        // Never accept a SUCCESS for a different amount or currency than we
+        // charged — that's either a bug or tampering, and needs a human.
+        if (
+          res.status === "SUCCESS" &&
+          ((res.amount !== undefined && Number(res.amount) !== Number(payment.amount)) ||
+            (res.currency !== undefined && res.currency !== payment.currency))
+        ) {
+          summary.amountMismatch++;
+          paymentLog("error", "recovery.amount_mismatch", { source: "recovery", paymentId: payment.id, providerReference: payment.provider_reference });
+          await deps.recordConflict(payment.id, {
+            localStatus: payment.status,
+            reportedStatus: `SUCCESS with ${res.amount ?? "?"} ${res.currency ?? "?"} (expected ${payment.amount} ${payment.currency})`,
+            source: "recovery",
+          });
           continue;
         }
 
