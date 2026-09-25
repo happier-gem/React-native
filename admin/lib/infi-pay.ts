@@ -137,11 +137,18 @@ const asRecord = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
 
 /** Unwraps the documented envelope. */
-function envelope(body: unknown): { success: boolean; data: Record<string, unknown> | null; errorCode: string | null } {
+function envelope(body: unknown): {
+  success: boolean;
+  /** The body was the documented envelope at all (explicit success true/false). */
+  recognized: boolean;
+  data: Record<string, unknown> | null;
+  errorCode: string | null;
+} {
   const record = asRecord(body);
   const error = asRecord(record?.error);
   return {
     success: record?.success === true,
+    recognized: typeof record?.success === "boolean",
     data: asRecord(record?.data),
     errorCode: typeof error?.code === "string" ? error.code.slice(0, 80) : null,
   };
@@ -196,7 +203,7 @@ export const infiPayProvider: PaymentProvider = {
     if (!NETWORK_PREFIXES[network].some((p) => local.startsWith(p))) {
       return {
         ok: false,
-        message: `That isn't a ${NETWORK_NAMES[network]} number (${NETWORK_PREFIXES[network].join("/")}…).`,
+        message: `That number isn't on ${NETWORK_NAMES[network]} (${NETWORK_PREFIXES[network].join("/")}…).`,
       };
     }
     return { ok: true, normalized: local };
@@ -237,8 +244,14 @@ export const infiPayProvider: PaymentProvider = {
       logError("initiate:server-error", { reference: params.reference, status: response.status, code: body.errorCode });
       return { kind: "uncertain", reason: `provider_http_${response.status}` };
     }
+    if (response.ok && !body.recognized) {
+      // A 2xx we can't read: it may well have been created.
+      logError("initiate:unreadable", { reference: params.reference, status: response.status });
+      return { kind: "uncertain", reason: "unreadable_success_response" };
+    }
     if (!response.ok || !body.success) {
-      // 4xx (validation, auth, 429 rate limit) — the collection wasn't created.
+      // 4xx (validation, auth, 429 rate limit) or an explicit success:false —
+      // the collection wasn't created.
       logError("initiate:rejected", { reference: params.reference, status: response.status, code: body.errorCode });
       return { kind: "rejected", reason: `provider_http_${response.status}${body.errorCode ? `:${body.errorCode}` : ""}` };
     }

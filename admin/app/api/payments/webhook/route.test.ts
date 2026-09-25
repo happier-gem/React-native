@@ -1,44 +1,62 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// The real INFI-PAY adapter (signature check + payload parsing) runs here; only
-// persistence and activation are mocked.
+// The real INFI-PAY adapter verifies and parses; persistence, recovery and
+// activation are mocked. `after()` callbacks are captured so each test can
+// run the background work explicitly.
+const pending = vi.hoisted(() => ({ tasks: [] as (() => Promise<void>)[] }));
+vi.mock("next/server", () => ({ after: (fn: () => Promise<void>) => void pending.tasks.push(fn) }));
+
 const payments = vi.hoisted(() => ({
   getPaymentByProviderReference: vi.fn(),
-  transitionPaymentStatus: vi.fn(),
-  recordProviderConflict: vi.fn(),
+  listRecentPendingPayments: vi.fn(),
 }));
-const handleSuccessfulPayment = vi.hoisted(() => vi.fn());
+const recoverPendingPayments = vi.hoisted(() => vi.fn());
+const activatePlanForPayment = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/payments", () => payments);
-vi.mock("@/lib/plan-activation", () => ({ handleSuccessfulPayment }));
+vi.mock("@/lib/payment-recovery", () => ({ recoverPendingPayments }));
+vi.mock("@/lib/plan-activation", () => ({ activatePlanForPayment }));
 
-import { POST } from "./route";
+import { POST, processVerifiedPaymentEvent } from "./route";
 
-const SECRET = "test-webhook-secret";
+const SECRET = "whsec_test";
 const sign = (body: string) => createHmac("sha256", SECRET).update(body).digest("hex");
 
-function webhook(event: unknown, signature?: string | null, rawOverride?: string) {
-  const body = rawOverride ?? JSON.stringify(event);
+/** A delivery in the documented shape. */
+const payload = (event: string, data: object = {}) =>
+  JSON.stringify({
+    event,
+    data: { transactionId: "b6b6c6d0", amount: 5000, currency: "MWK", status: "SUCCESS", provider: "airtel", externalRef: "AIRTEL_1", ...data },
+  });
+
+function deliver(body: string, signature: string | null = sign(body)) {
   const headers: Record<string, string> = {};
-  const sig = signature === undefined ? sign(body) : signature;
-  if (sig !== null) headers["x-infipay-signature"] = sig;
-  return new Request("http://x/api/payments/webhook", { method: "POST", body, headers });
+  if (signature !== null) headers["x-signature"] = signature;
+  return POST(new Request("http://x/api/payments/webhook", { method: "POST", body, headers }));
 }
 
+const runBackground = async () => {
+  const tasks = pending.tasks.splice(0);
+  for (const task of tasks) await task();
+};
+
 const ENV = {
-  INFI_PAY_API_URL: "https://sandbox.example.test",
-  INFI_PAY_API_KEY: "test-key",
+  INFI_PAY_API_URL: "https://api.infi-pay.com/api/v1",
+  INFI_PAY_API_KEY: "sk_test_key",
   INFI_PAY_WEBHOOK_SECRET: SECRET,
   INFI_PAY_ENVIRONMENT: "sandbox",
 };
 
+const PENDING_PAYMENT = { id: "pay-1", status: "PENDING", provider_reference: "pay-1" };
+
 beforeEach(() => {
   Object.assign(process.env, ENV);
-  payments.getPaymentByProviderReference.mockReset().mockResolvedValue({ id: "pay-1", user_id: "user_a", plan: "pro" });
-  payments.transitionPaymentStatus.mockReset().mockResolvedValue({ ok: true, alreadyProcessed: false, currentStatus: "SUCCESS" });
-  payments.recordProviderConflict.mockReset().mockResolvedValue(undefined);
-  handleSuccessfulPayment.mockReset().mockResolvedValue({ ok: true, outcome: "applied", events: [] });
+  pending.tasks.length = 0;
+  payments.getPaymentByProviderReference.mockReset().mockResolvedValue(PENDING_PAYMENT);
+  payments.listRecentPendingPayments.mockReset().mockResolvedValue([PENDING_PAYMENT]);
+  recoverPendingPayments.mockReset().mockResolvedValue({});
+  activatePlanForPayment.mockReset().mockResolvedValue({ ok: true, outcome: "applied", events: [] });
   vi.spyOn(console, "info").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -48,134 +66,55 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("POST /api/payments/webhook", () => {
-  it("valid SUCCESS: transitions the payment and activates the plan", async () => {
-    const res = await POST(webhook({ providerReference: "ref-1", status: "SUCCESS" }));
+describe("POST /api/payments/webhook — response", () => {
+  it("a verified payment.success is acknowledged immediately (200) and processed in the background", async () => {
+    const res = await deliver(payload("payment.success"));
     expect(res.status).toBe(200);
-    expect(payments.transitionPaymentStatus).toHaveBeenCalledWith("pay-1", "SUCCESS", { failureReason: undefined });
-    expect(handleSuccessfulPayment).toHaveBeenCalledWith(expect.objectContaining({ id: "pay-1" }));
+    expect(await res.json()).toEqual({ ok: true, accepted: true });
+    // Nothing happened yet — the provider isn't kept waiting (15 s limit).
+    expect(recoverPendingPayments).not.toHaveBeenCalled();
+    expect(pending.tasks).toHaveLength(1);
   });
 
   it.each([
     ["missing", null],
     ["forged", "0".repeat(64)],
-    ["for a different body", sign('{"providerReference":"ref-1","status":"FAILED"}')],
-  ])("a %s signature is rejected before the payload is read", async (_label, signature) => {
-    const res = await POST(webhook({ providerReference: "ref-1", status: "SUCCESS" }, signature));
+    ["for a different body", sign(payload("payment.failed"))],
+  ])("a %s signature is rejected (401) and nothing is scheduled", async (_label, signature) => {
+    const res = await deliver(payload("payment.success"), signature);
     expect(res.status).toBe(401);
-    expect(payments.getPaymentByProviderReference).not.toHaveBeenCalled();
-    expect(handleSuccessfulPayment).not.toHaveBeenCalled();
+    expect(pending.tasks).toHaveLength(0);
   });
 
   it("with no webhook secret configured, every webhook is rejected", async () => {
     delete process.env.INFI_PAY_WEBHOOK_SECRET;
-    const res = await POST(webhook({ providerReference: "ref-1", status: "SUCCESS" }));
-    expect(res.status).toBe(401);
-    expect(handleSuccessfulPayment).not.toHaveBeenCalled();
-  });
-
-  it("duplicate SUCCESS is harmless (activation is idempotent and no-ops)", async () => {
-    payments.transitionPaymentStatus.mockResolvedValue({ ok: true, alreadyProcessed: true, currentStatus: "SUCCESS" });
-    handleSuccessfulPayment.mockResolvedValue({ ok: true, outcome: "duplicate" });
-    const res = await POST(webhook({ providerReference: "ref-1", status: "SUCCESS" }));
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, alreadyProcessed: true });
-    expect(payments.recordProviderConflict).not.toHaveBeenCalled();
-  });
-
-  it("concurrent duplicate deliveries: one transition, the other a no-op", async () => {
-    let settled = false;
-    payments.transitionPaymentStatus.mockImplementation(async () => {
-      const first = !settled;
-      settled = true;
-      return { ok: true, alreadyProcessed: !first, currentStatus: "SUCCESS" };
-    });
-    const [a, b] = await Promise.all([
-      POST(webhook({ providerReference: "ref-1", status: "SUCCESS" })),
-      POST(webhook({ providerReference: "ref-1", status: "SUCCESS" })),
-    ]);
-    expect([a.status, b.status]).toEqual([200, 200]);
-    const bodies = await Promise.all([a.json(), b.json()]);
-    expect(bodies.map((x) => x.alreadyProcessed).sort()).toEqual([false, true]);
+    expect((await deliver(payload("payment.success"))).status).toBe(401);
   });
 
   it.each([
-    ["not JSON", "not json at all"],
+    ["not JSON", "not json"],
     ["a JSON array", "[1,2,3]"],
-    ["missing providerReference", JSON.stringify({ status: "SUCCESS" })],
-    ["non-string providerReference", JSON.stringify({ providerReference: 42, status: "SUCCESS" })],
-  ])("malformed payload (%s) is rejected with 400 and never processed", async (_label, raw) => {
-    const res = await POST(webhook(null, undefined, raw));
-    expect(res.status).toBe(400);
-    expect(payments.transitionPaymentStatus).not.toHaveBeenCalled();
+    ["missing data", JSON.stringify({ event: "payment.success" })],
+    ["missing event", JSON.stringify({ data: {} })],
+  ])("malformed payload (%s) is rejected with 400", async (_label, body) => {
+    expect((await deliver(body)).status).toBe(400);
+    expect(pending.tasks).toHaveLength(0);
   });
 
   it("an oversized body is rejected", async () => {
-    const res = await POST(webhook(null, undefined, JSON.stringify({ providerReference: "r", pad: "x".repeat(70_000) })));
-    expect(res.status).toBe(400);
+    expect((await deliver(payload("payment.success", { pad: "x".repeat(70_000) }))).status).toBe(400);
   });
 
-  it("FAILED never activates a plan", async () => {
-    payments.transitionPaymentStatus.mockResolvedValue({ ok: true, alreadyProcessed: false, currentStatus: "FAILED" });
-    const res = await POST(webhook({ providerReference: "ref-1", status: "FAILED", failureReason: "insufficient funds" }));
-    expect(res.status).toBe(200);
-    expect(payments.transitionPaymentStatus).toHaveBeenCalledWith("pay-1", "FAILED", { failureReason: "insufficient funds" });
-    expect(handleSuccessfulPayment).not.toHaveBeenCalled();
-  });
-
-  it("CANCELLED never activates a plan", async () => {
-    payments.transitionPaymentStatus.mockResolvedValue({ ok: true, alreadyProcessed: false, currentStatus: "CANCELLED" });
-    const res = await POST(webhook({ providerReference: "ref-1", status: "cancelled" }));
-    expect(res.status).toBe(200);
-    expect(handleSuccessfulPayment).not.toHaveBeenCalled();
-  });
-
-  it("an unknown event/status is acknowledged and ignored, not a crash", async () => {
-    const res = await POST(webhook({ providerReference: "ref-1", status: "REFUND_REQUESTED" }));
+  it.each(["payout.success", "refund.failed", "payment.chargeback"])("%s (unknown/unused event) is acknowledged and ignored", async (event) => {
+    const res = await deliver(payload(event));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, ignored: true });
-    expect(payments.transitionPaymentStatus).not.toHaveBeenCalled();
+    expect(pending.tasks).toHaveLength(0);
   });
 
-  it("a PENDING event changes nothing", async () => {
-    const res = await POST(webhook({ providerReference: "ref-1", status: "pending" }));
-    expect(res.status).toBe(200);
-    expect(payments.transitionPaymentStatus).not.toHaveBeenCalled();
-  });
-
-  it("an unknown provider reference is acknowledged (recovery reconciles our side)", async () => {
-    payments.getPaymentByProviderReference.mockResolvedValue(null);
-    const res = await POST(webhook({ providerReference: "ref-unknown", status: "SUCCESS" }));
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, matched: false });
-  });
-
-  it("a late contradictory report never moves a final status backwards — it's recorded as a conflict", async () => {
-    payments.transitionPaymentStatus.mockResolvedValue({ ok: true, alreadyProcessed: true, currentStatus: "FAILED" });
-    const res = await POST(webhook({ providerReference: "ref-1", status: "SUCCESS" }));
-    expect(res.status).toBe(200);
-    expect(payments.recordProviderConflict).toHaveBeenCalledWith("pay-1", { localStatus: "FAILED", reportedStatus: "SUCCESS", source: "webhook" });
-    expect(handleSuccessfulPayment).not.toHaveBeenCalled();
-  });
-
-  it("a database failure on lookup is retryable (503), never acknowledged", async () => {
-    payments.getPaymentByProviderReference.mockRejectedValue(new Error("db down"));
-    const res = await POST(webhook({ providerReference: "ref-1", status: "SUCCESS" }));
-    expect(res.status).toBe(503);
-    expect(res.headers.get("retry-after")).toBe("60");
-  });
-
-  it("a database failure on transition is retryable (503)", async () => {
-    payments.transitionPaymentStatus.mockResolvedValue({ ok: false, error: "db" });
-    const res = await POST(webhook({ providerReference: "ref-1", status: "SUCCESS" }));
-    expect(res.status).toBe(503);
-    expect(handleSuccessfulPayment).not.toHaveBeenCalled();
-  });
-
-  it("a failed activation is retryable (503); the payment stays SUCCESS", async () => {
-    handleSuccessfulPayment.mockResolvedValue({ ok: false, error: "boom" });
-    const res = await POST(webhook({ providerReference: "ref-1", status: "SUCCESS" }));
-    expect(res.status).toBe(503);
+  it("payment.pending changes nothing", async () => {
+    expect((await deliver(payload("payment.pending"))).status).toBe(200);
+    expect(pending.tasks).toHaveLength(0);
   });
 
   it("never logs the payload, signature or secret", async () => {
@@ -183,12 +122,71 @@ describe("POST /api/payments/webhook", () => {
     for (const level of ["info", "warn", "error"] as const) {
       vi.spyOn(console, level).mockImplementation((...args: unknown[]) => void logged.push(args.map(String).join(" ")));
     }
-    const body = JSON.stringify({ providerReference: "ref-1", status: "SUCCESS", phone: "0991234567" });
-    await POST(webhook(null, undefined, body));
-    await POST(webhook(null, "bad-signature", body));
+    const body = payload("payment.success", { phoneNumber: "0991234567" });
+    await deliver(body);
+    await deliver(body, "bad");
     const all = logged.join("\n");
     expect(all).not.toContain(SECRET);
     expect(all).not.toContain("0991234567");
     expect(all).not.toContain(sign(body));
+  });
+});
+
+describe("background processing — the webhook's status is never trusted on its own", () => {
+  it("documented payload (no reference): re-checks recent pending payments with INFI-PAY", async () => {
+    await deliver(payload("payment.success"));
+    await runBackground();
+    expect(recoverPendingPayments).toHaveBeenCalledWith(expect.objectContaining({ minAgeMinutes: 0, limit: 25 }));
+    // …using the newest pending payments.
+    const { deps } = recoverPendingPayments.mock.calls[0][0];
+    expect(await deps.listPending(new Date(), 25)).toEqual([PENDING_PAYMENT]);
+    expect(payments.listRecentPendingPayments).toHaveBeenCalledWith(25);
+  });
+
+  it("payment.failed is also only a prompt — the status comes from INFI-PAY", async () => {
+    await deliver(payload("payment.failed"));
+    await runBackground();
+    expect(recoverPendingPayments).toHaveBeenCalledTimes(1);
+    expect(activatePlanForPayment).not.toHaveBeenCalled();
+  });
+
+  it("with our reference: checks exactly that pending payment", async () => {
+    await processVerifiedPaymentEvent("pay-1");
+    expect(payments.getPaymentByProviderReference).toHaveBeenCalledWith("pay-1");
+    const { deps, limit } = recoverPendingPayments.mock.calls[0][0];
+    expect(limit).toBe(1);
+    expect(await deps.listPending()).toEqual([PENDING_PAYMENT]);
+  });
+
+  it("with our reference for an already-SUCCESS payment: only (idempotent) activation", async () => {
+    payments.getPaymentByProviderReference.mockResolvedValue({ ...PENDING_PAYMENT, status: "SUCCESS" });
+    await processVerifiedPaymentEvent("pay-1");
+    expect(activatePlanForPayment).toHaveBeenCalledWith("pay-1");
+    expect(recoverPendingPayments).not.toHaveBeenCalled();
+  });
+
+  it("with our reference for a FAILED payment: nothing (final statuses never change)", async () => {
+    payments.getPaymentByProviderReference.mockResolvedValue({ ...PENDING_PAYMENT, status: "FAILED" });
+    await processVerifiedPaymentEvent("pay-1");
+    expect(activatePlanForPayment).not.toHaveBeenCalled();
+    expect(recoverPendingPayments).not.toHaveBeenCalled();
+  });
+
+  it("an unknown reference falls back to re-checking recent pending payments", async () => {
+    payments.getPaymentByProviderReference.mockResolvedValue(null);
+    await processVerifiedPaymentEvent("not-ours");
+    expect(recoverPendingPayments).toHaveBeenCalledWith(expect.objectContaining({ limit: 25 }));
+  });
+
+  it("duplicate deliveries each trigger a re-check — settlement itself is idempotent", async () => {
+    await Promise.all([deliver(payload("payment.success")), deliver(payload("payment.success"))]);
+    await runBackground();
+    expect(recoverPendingPayments).toHaveBeenCalledTimes(2);
+  });
+
+  it("a background failure is logged, not thrown (scheduled recovery picks it up)", async () => {
+    recoverPendingPayments.mockRejectedValue(new Error("db down"));
+    await deliver(payload("payment.success"));
+    await expect(runBackground()).resolves.toBeUndefined();
   });
 });

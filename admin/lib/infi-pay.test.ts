@@ -80,8 +80,8 @@ describe("phone numbers (documented prefixes)", () => {
   });
 
   it.each([
-    ["0881234567", "airtel_money", /isn't a Airtel Money number/],
-    ["0991234567", "tnm_mpamba", /isn't a TNM Mpamba number/],
+    ["0881234567", "airtel_money", /isn't on Airtel Money/],
+    ["0991234567", "tnm_mpamba", /isn't on TNM Mpamba/],
     ["12345", "airtel_money", /valid Malawi/],
   ] as const)("%s on %s is refused", (input, network, message) => {
     const result = infiPayProvider.checkPhoneNumber(input, network);
