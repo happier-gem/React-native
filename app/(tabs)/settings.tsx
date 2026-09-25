@@ -22,7 +22,7 @@ import { useNotificationsSettings } from "@/context/notifications-context";
 import { sendTestNotifications } from "@/lib/notifications";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { usePlan } from "@/context/plan-context";
-import { formatRenewalDate } from "@/constants/data";
+import { settingsPlanSummary } from "@/lib/plan-display";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 
 const SettingsRow = ({
@@ -396,14 +396,7 @@ const Settings = () => {
   const { currentPlan, availablePlans } = usePlan();
 
   // Display only — the plan, its name and its expiry all come from the server.
-  const planLabel = currentPlan
-    ? [
-        availablePlans.find((p) => p.id === currentPlan.plan)?.name ?? currentPlan.plan,
-        currentPlan.expiresAt ? `until ${formatRenewalDate(currentPlan.expiresAt)}` : null,
-      ]
-        .filter(Boolean)
-        .join(" · ")
-    : "—";
+  const planLabel = settingsPlanSummary(currentPlan, availablePlans);
 
   const handleOpenAdminDashboard = () => {
     const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -464,6 +457,19 @@ const Settings = () => {
             <ThemedText tone="white" className="opacity-80">{">"}</ThemedText>
           </View>
         </Pressable>
+
+        <ThemedText tone="muted" className="text-sm font-semibold mb-2">
+          Plan
+        </ThemedText>
+        <Card className="rounded-2xl px-4 mb-6">
+          <Pressable
+            onPress={() => router.push("/plans")}
+            accessibilityRole="button"
+            accessibilityLabel={`Plan: ${planLabel}. Opens plans`}
+          >
+            <SettingsRow label="Plan" value={planLabel} icon="star-outline" iconBadgeColor={accent} last />
+          </Pressable>
+        </Card>
 
         <ThemedText tone="muted" className="text-sm font-semibold mb-2">
           Preferences
@@ -527,7 +533,6 @@ const Settings = () => {
           About
         </ThemedText>
         <Card className="rounded-2xl px-4 mb-6">
-          <SettingsRow label="Plan" value={planLabel} icon="star-outline" iconBadgeColor={accent} />
           <SettingsRow label="Version" value="1.0.0" last />
         </Card>
 
