@@ -1,97 +1,162 @@
-# Welcome to your Expo app 👋
+# Subscription Tracker
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A mobile app for tracking the subscriptions you pay for, with paid Starter/Pro
+tiers bought through mobile money (INFI-PAY, MWK).
 
-## Get started
+> **Status: not production-ready.** The INFI-PAY integration is built against a
+> placeholder contract (no official docs or credentials yet), and the latest
+> database migrations have not been applied to the real Supabase project. See
+> [docs/payments.md](docs/payments.md#production-readiness).
 
-1. Install dependencies
+## Architecture
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+Mobile app (Expo)  ──HTTPS + Clerk session token──▶  Admin/API server (Next.js, admin/)
+                                                        │            │
+                                                        ▼            ▼
+                                             Supabase (Postgres)   INFI-PAY
+                                             secret key, server    server-only
+                                             side only             credentials
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- The **mobile app never talks to Supabase or INFI-PAY**. It only calls the
+  admin/API server, authenticated with the user's Clerk session token.
+- The **server is the authority** for prices, payment status, plan activation
+  and expiry. The app only displays what `GET /api/me/plan` returns.
+- **Supabase** tables have Row Level Security on with no policies, and the
+  client roles have no table privileges: only the server's secret key can
+  read or write data.
 
-## Learn more
+## Repository layout
 
-To learn more about developing your project with Expo, look at the following resources:
+| Path | What |
+|---|---|
+| `app/` | Mobile screens (expo-router file-based routes). `app/plans.tsx` is the plan/checkout screen. |
+| `context/` | Mobile state: subscriptions, plan (`plan-context.tsx`), theme, currency, notifications. |
+| `lib/` | Mobile API client, checkout controller (`payment-flow.ts`), plan display rules. |
+| `components/`, `hooks/`, `constants/` | Mobile UI building blocks. |
+| `__tests__/`, `lib/__tests__/` | Mobile tests (Jest + React Native Testing Library). |
+| `admin/` | Next.js admin dashboard **and** the API the app calls. Own `package.json`. |
+| `admin/app/api/` | API routes: subscriptions, payments, `me/plan`, webhook, internal recovery. |
+| `admin/lib/` | Server logic: payments, INFI-PAY adapter, plan rules/activation, recovery, reconciliation. |
+| `admin/supabase/` | `schema.sql` (fresh install), `migrations/` (existing databases), `verify.sql` (read-only check). |
+| `docs/` | [Payments & operations](docs/payments.md), [device test checklist](docs/device-testing.md). |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Setup
 
-## Troubleshooting: `TypeError: fetch failed` on `npm start` / `npx expo start` (Windows)
+Requirements: Node 22, npm. Works on Windows, macOS and Linux.
 
-On startup, Expo CLI calls out to `api.expo.dev` to validate that your installed
-package versions match the ones expected for your Expo SDK (this is what powers
-the "should be updated for best compatibility" warnings). That call happens
-inside `getNativeModuleVersionsAsync` → `validateDependenciesVersionsAsync`. If
-that network request fails, Node's `fetch` (undici) surfaces it as a generic
-`TypeError: fetch failed`, even though the real cause is always a network/TLS
-condition between your machine and Expo's API, never application code.
+### 1. Clerk
 
-If you hit this, check the following, roughly in order of likelihood on Windows:
+One Clerk application is shared by the app and the admin server. Make yourself
+an admin: Clerk Dashboard → Users → you → Public metadata → `{"role": "admin"}`.
 
-1. **Flaky Wi‑Fi/VPN/hotspot connection.** This is by far the most common cause.
-   Undici does not retry a dropped connection the way a browser does. Re-running
-   `npx expo start` after the connection stabilizes usually succeeds immediately.
-2. **Corporate proxy env vars.** Check `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY`
-   / `NO_PROXY` (`Get-ChildItem Env: | Where-Object Name -match 'PROXY'` in
-   PowerShell). A stale or unreachable proxy will break this request even if
-   your browser works fine (browsers often have separate proxy handling).
-3. **SSL-inspecting antivirus/corporate firewall** (Kaspersky, Zscaler, Netskope,
-   Fortinet, etc.). These re-sign HTTPS traffic with a local root certificate
-   that's trusted by Windows' system store (so `curl`/browsers work) but **not**
-   by Node's bundled CA bundle, which `undici` uses. Fix by pointing Node at your
-   organization's root CA, not by disabling TLS verification:
-   ```powershell
-   $env:NODE_EXTRA_CA_CERTS = "C:\path\to\corporate-root-ca.pem"
-   ```
-4. **IPv6 route flapping.** If your network/VPN advertises IPv6 (`AAAA` records)
-   but doesn't actually route it reliably, fetch attempts can intermittently
-   fail. Force IPv4 resolution first as a safe, permanent fix:
-   ```powershell
-   setx NODE_OPTIONS "--dns-result-order=ipv4first"
-   ```
-5. **Verify independently of Expo**, to confirm whether it's your network or
-   something Expo-specific:
-   ```powershell
-   node -e "fetch('https://api.expo.dev/v2/versions/latest').then(r=>console.log(r.status)).catch(e=>console.log(e))"
-   ```
-   If this fails the same way `npm start` does, it's a machine/network issue,
-   not this project.
+### 2. Supabase
 
-Do **not** "fix" this by permanently setting `EXPO_OFFLINE=1` or
-`EXPO_NO_DEPENDENCY_VALIDATION=1` in project config — those are real Expo CLI
-escape hatches for genuinely offline development, but they hide dependency
-drift rather than fixing connectivity, so only use them ad hoc for a single
-session when you know you're offline (e.g. `EXPO_OFFLINE=1 npx expo start`).
+- **New project:** run [`admin/supabase/schema.sql`](admin/supabase/schema.sql) in the SQL editor.
+- **Existing project:** run the files in [`admin/supabase/migrations/`](admin/supabase/migrations/) in filename order.
+- Then run [`admin/supabase/verify.sql`](admin/supabase/verify.sql). It is read-only; every row must show `ok = true`.
 
-## Join the community
+Details and the current deployment status: [docs/payments.md → Database](docs/payments.md#database).
 
-Join our community of developers creating universal apps.
+### 3. Admin/API server
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+cd admin
+npm install
+cp .env.example .env.local   # fill in — see "Environment variables" below
+npm run dev                  # http://localhost:3000  (or `npm run admin` from the repo root)
+```
+
+### 4. Mobile app
+
+```bash
+npm install
+cp .env.example .env.local   # EXPO_PUBLIC_API_BASE_URL = your computer's LAN IP, e.g. http://192.168.1.20:3000
+npm start                    # also: npm run android / ios / web
+```
+
+A physical phone can't reach `localhost` on your computer — use the LAN IP.
+
+## Environment variables
+
+**Mobile (`.env.local`, bundled into the app — public values only):**
+
+| Variable | Notes |
+|---|---|
+| `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (`pk_...`). |
+| `EXPO_PUBLIC_API_BASE_URL` | Admin/API server URL reachable from the phone. |
+
+Never put a Supabase key, Clerk secret, INFI-PAY credential or webhook secret in
+an `EXPO_PUBLIC_*` variable — anything there ships inside the app.
+
+**Admin/API (`admin/.env.local`, server-only):** see
+[`admin/.env.example`](admin/.env.example) and the full checklist in
+[docs/payments.md](docs/payments.md#environment-checklist).
+
+| Variable | Required | Notes |
+|---|---|---|
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | yes | Same Clerk app as mobile (public). |
+| `CLERK_SECRET_KEY` | yes | Secret. |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | yes | Secret key bypasses RLS — server only. |
+| `INFI_PAY_API_URL`, `INFI_PAY_API_KEY`, `INFI_PAY_WEBHOOK_SECRET`, `INFI_PAY_ENVIRONMENT` | for payments | All four or payments are disabled (fail closed). |
+| `CRON_SECRET` | for recovery | Enables the scheduled recovery endpoint. |
+
+## Payments and plans (summary)
+
+Free / Starter (2,000 MWK) / Pro (5,000 MWK) per month — **prices are
+provisional placeholders**, centralized in `admin/lib/plans.ts`.
+
+```text
+Plans screen → POST /api/payments/initiate (server sets the price) → INFI-PAY prompt on the phone
+  → webhook (signature verified) or scheduled recovery (asks INFI-PAY) → payment SUCCESS
+  → plan activated once, in one database transaction → app polls GET /api/payments/[id]
+  → app refreshes GET /api/me/plan → shows the server's plan
+```
+
+Full flow, state machine, recovery, reconciliation and the open business/provider
+decisions: **[docs/payments.md](docs/payments.md)**.
+
+## Development
+
+| | Mobile (repo root) | Admin (`admin/`) |
+|---|---|---|
+| Type check | `npx tsc --noEmit` | `npx tsc --noEmit` (run `npx next typegen` first on a fresh clone) |
+| Lint | `npm run lint` | `npm run lint` |
+| Tests | `npm test` (Jest) | `npm test` (Vitest, includes in-process Postgres tests) |
+| Build | `npx expo export` | `npm run build` |
+
+CI (`.github/workflows/ci.yml`) runs all of the above on every push/PR. The
+builds need `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` and
+`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` as repository secrets.
+
+After adding a mobile route, typed routes regenerate on the next `npm start`.
+
+## Deployment notes
+
+- Deploy `admin/` as a Next.js app (e.g. Vercel, root directory `admin`). Set
+  the server env vars there — never in the mobile build.
+- Schedule `GET /api/internal/payments/recover` every 5–10 minutes with
+  `Authorization: Bearer $CRON_SECRET` (Vercel Cron sends this header automatically when `CRON_SECRET` is set).
+- Register the webhook URL `https://<admin-host>/api/payments/webhook` with INFI-PAY once their contract is confirmed.
+- Build the app with `EXPO_PUBLIC_API_BASE_URL` pointing at the deployed admin host (HTTPS).
+
+## Troubleshooting (Windows): `TypeError: fetch failed` on `npm start`
+
+On startup Expo CLI calls `api.expo.dev` to validate package versions; when that
+request fails, Node reports a generic `TypeError: fetch failed`. The cause is
+always the network, not this project. In order of likelihood:
+
+1. **Flaky Wi-Fi/VPN/hotspot.** Re-run once the connection is stable. (The npm
+   scripts already set `NODE_OPTIONS=--no-network-family-autoselection`, which
+   helps on networks with unreliable IPv6.)
+2. **Proxy variables.** Check `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` /
+   `NO_PROXY` (`Get-ChildItem Env: | Where-Object Name -match 'PROXY'`).
+3. **SSL-inspecting antivirus/firewall.** Point Node at your organization's root
+   CA instead of disabling TLS: `$env:NODE_EXTRA_CA_CERTS = "C:\path\to\root-ca.pem"`.
+4. **IPv6 route flapping.** `setx NODE_OPTIONS "--dns-result-order=ipv4first"`.
+5. **Check outside Expo:**
+   `node -e "fetch('https://api.expo.dev/v2/versions/latest').then(r=>console.log(r.status)).catch(e=>console.log(e))"`
+
+Use `EXPO_OFFLINE=1 npx expo start` only ad hoc when you're genuinely offline —
+not as a permanent setting.

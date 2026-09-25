@@ -11,7 +11,8 @@ const TIER_RANK: Record<TierId, number> = { free: 0, starter: 1, pro: 2 };
 
 /** A paid plan can be renewed (paid for again, adding a month to its current
  * end date) only this close to expiry, so a stray tap can't buy months the
- * user doesn't need yet. */
+ * user doesn't need yet. PROVISIONAL — awaiting business approval
+ * (docs/payments.md#business-decisions). */
 export const RENEWAL_WINDOW_DAYS = 7;
 
 /** Per-plan feature bullets. The business hasn't defined feature limits yet,
