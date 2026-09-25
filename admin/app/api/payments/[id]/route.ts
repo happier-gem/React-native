@@ -10,7 +10,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   // and there is no route/action anywhere that lets a client set a payment's
   // status directly (it only ever changes via transitionPaymentStatus(),
   // called from the webhook handler).
-  const payment = await getPaymentForUser(auth.userId, id);
+  let payment;
+  try {
+    payment = await getPaymentForUser(auth.userId, id);
+  } catch {
+    return Response.json({ error: "Something went wrong on our end. Please try again." }, { status: 500 });
+  }
   if (!payment) return Response.json({ error: "Payment not found" }, { status: 404 });
 
   return Response.json({
