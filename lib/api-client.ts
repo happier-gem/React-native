@@ -37,7 +37,15 @@ async function request<T>(
     if (response.status === 204) return undefined as T;
 
     const text = await response.text();
-    const data = text ? JSON.parse(text) : undefined;
+    // A proxy/gateway can answer with an HTML error page; never surface a raw
+    // JSON parse error to the user.
+    let data: unknown;
+    try {
+        data = text ? JSON.parse(text) : undefined;
+    } catch {
+        if (!response.ok) throw new ApiError(response.status, "Something went wrong on our end. Please try again.");
+        throw new ApiError(response.status, "Unexpected response from the server. Please try again.");
+    }
 
     if (!response.ok) {
         const message = (data && typeof data === "object" && "error" in data ? data.error : null) ?? response.statusText;
