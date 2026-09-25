@@ -57,7 +57,14 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const api = useMemo(() => createApiClient(getToken), [getToken]);
+    // getToken's identity isn't guaranteed stable across renders; reading it
+    // through a ref keeps the client — and therefore refresh() — stable, so
+    // effects depending on refresh (focus/foreground refetches) can't loop.
+    const getTokenRef = useRef(getToken);
+    useEffect(() => {
+        getTokenRef.current = getToken;
+    }, [getToken]);
+    const api = useMemo(() => createApiClient(() => getTokenRef.current()), []);
 
     // Only the latest request may write state, so a slow older response can
     // never overwrite a newer one (e.g. focus refresh racing a post-payment one).
