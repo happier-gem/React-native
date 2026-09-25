@@ -24,7 +24,7 @@ describe("api client", () => {
 
     it("an HTML error page becomes a friendly ApiError, not a JSON parse error", async () => {
         global.fetch = reply(502, "<html>Bad Gateway</html>") as unknown as typeof fetch;
-        const error = await createApiClient(async () => "t").get("/x").catch((e) => e);
+        const error = (await createApiClient(async () => "t").get("/x").catch((e: unknown) => e)) as ApiError;
         expect(error).toBeInstanceOf(ApiError);
         expect(error.status).toBe(502);
         expect(error.message).toBe("Something went wrong on our end. Please try again.");
