@@ -21,6 +21,8 @@ import { currencyOptions, useCurrency } from "@/context/currency-context";
 import { useNotificationsSettings } from "@/context/notifications-context";
 import { sendTestNotifications } from "@/lib/notifications";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { usePlan } from "@/context/plan-context";
+import { formatRenewalDate } from "@/constants/data";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 
 const SettingsRow = ({
@@ -391,6 +393,17 @@ const Settings = () => {
   const { signOut } = useAuth();
   const { enabled: notificationsEnabled, setEnabled: setNotificationsEnabled } = useNotificationsSettings();
   const isAdmin = useIsAdmin();
+  const { currentPlan, availablePlans } = usePlan();
+
+  // Display only — the plan, its name and its expiry all come from the server.
+  const planLabel = currentPlan
+    ? [
+        availablePlans.find((p) => p.id === currentPlan.plan)?.name ?? currentPlan.plan,
+        currentPlan.expiresAt ? `until ${formatRenewalDate(currentPlan.expiresAt)}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "—";
 
   const handleOpenAdminDashboard = () => {
     const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -514,6 +527,7 @@ const Settings = () => {
           About
         </ThemedText>
         <Card className="rounded-2xl px-4 mb-6">
+          <SettingsRow label="Plan" value={planLabel} icon="star-outline" iconBadgeColor={accent} />
           <SettingsRow label="Version" value="1.0.0" last />
         </Card>
 

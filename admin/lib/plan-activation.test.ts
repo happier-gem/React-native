@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { PGlite } from "@electric-sql/pglite";
+import type { PGliteInterface } from "@electric-sql/pglite";
 import { activatePlanForPayment, type ActivationDeps } from "@/lib/plan-activation";
 import { getEffectiveUserPlan, syncUserPlan } from "@/lib/user-plans";
 import { PLANS } from "@/lib/plans";
@@ -14,7 +14,7 @@ vi.mock("@/lib/audit-log", () => ({
   },
 }));
 
-let db: PGlite;
+let db: PGliteInterface;
 let deps: ActivationDeps;
 
 async function userPlanRow(userId: string) {
@@ -35,7 +35,7 @@ async function eventsFor(userId: string) {
 
 // Booting Postgres + loading the schema is the slow part; do it once and give
 // every test its own clone.
-let template: PGlite;
+let template: PGliteInterface;
 beforeAll(async () => {
   template = await createTestDb();
 });

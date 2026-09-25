@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { PGlite } from "@electric-sql/pglite";
+import { PGlite, type PGliteInterface } from "@electric-sql/pglite";
+import type { PaymentStatus } from "@/lib/payments";
 import { rowToStoredPlan, toTransitionArgs, type PlanStore, type TransitionOutcome } from "@/lib/user-plans";
 
 const supabaseDir = join(__dirname, "..", "supabase");
@@ -33,7 +34,7 @@ export async function createTestDb({ withMigrations = true } = {}): Promise<PGli
 }
 
 export async function insertPayment(
-  db: PGlite,
+  db: PGliteInterface,
   p: { userId: string; plan: "starter" | "pro"; status?: string; completedAt?: string | null }
 ): Promise<string> {
   const { rows } = await db.query<{ id: string }>(
@@ -45,17 +46,17 @@ export async function insertPayment(
   return rows[0].id;
 }
 
-export async function getPaymentRow(db: PGlite, id: string) {
+export async function getPaymentRow(db: PGliteInterface, id: string) {
   const { rows } = await db.query<{ id: string; user_id: string; plan: "starter" | "pro"; status: string; completed_at: Date | null }>(
     "select id, user_id, plan, status, completed_at from public.payments where id = $1",
     [id]
   );
   const row = rows[0];
-  return row ? { ...row, status: row.status as "SUCCESS", completed_at: row.completed_at?.toISOString() ?? null } : null;
+  return row ? { ...row, status: row.status as PaymentStatus, completed_at: row.completed_at?.toISOString() ?? null } : null;
 }
 
 /** Same contract as supabasePlanStore, calling the same SQL function. */
-export function pglitePlanStore(db: PGlite): PlanStore {
+export function pglitePlanStore(db: PGliteInterface): PlanStore {
   return {
     async getUserPlan(userId) {
       const { rows } = await db.query("select * from public.user_plans where user_id = $1", [userId]);
