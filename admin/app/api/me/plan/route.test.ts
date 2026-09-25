@@ -47,12 +47,28 @@ describe("GET /api/me/plan", () => {
       startedAt: "2026-09-25T00:00:00.000Z",
       expiresAt: "2026-10-25T00:00:00.000Z",
       pendingChange: null,
+      endedPlan: null,
     });
     expect(body.availablePlans).toEqual([
       { id: "free", name: "Free", price: 0, currency: "MWK", interval: null },
       { id: "starter", name: "Starter", price: 2000, currency: "MWK", interval: "monthly" },
       { id: "pro", name: "Pro", price: 5000, currency: "MWK", interval: "monthly" },
     ]);
+  });
+
+  it("reports the paid plan that ended when the user is back on FREE", async () => {
+    auth.result = { ok: true, userId: "user_a" };
+    syncUserPlan.mockResolvedValue({
+      ...FREE,
+      storedPlan: {
+        plan: "pro",
+        status: "EXPIRED",
+        startedAt: new Date("2026-08-01T00:00:00.000Z"),
+        expiresAt: new Date("2026-09-01T00:00:00.000Z"),
+      },
+    });
+    const body = await (await route.GET(new Request("http://x/api/me/plan"))).json();
+    expect(body.plan).toMatchObject({ plan: "free", endedPlan: { plan: "pro", endedAt: "2026-09-01T00:00:00.000Z" } });
   });
 
   it("exposes no way to write a plan", () => {

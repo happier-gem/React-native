@@ -31,6 +31,12 @@ export async function GET(request: Request) {
             expiresAt: effective.pendingChange.expiresAt.toISOString(),
           }
         : null,
+      // The paid period that most recently ended, when the user has fallen
+      // back to FREE — lets the app say "your Pro plan ended on …".
+      endedPlan:
+        effective.plan === "free" && effective.storedPlan
+          ? { plan: effective.storedPlan.plan, endedAt: effective.storedPlan.expiresAt.toISOString() }
+          : null,
     },
     availablePlans: listAvailablePlans(),
   });
