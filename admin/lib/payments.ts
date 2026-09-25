@@ -126,15 +126,21 @@ export async function createPendingPayment(input: {
   return { ok: true, row: data as PaymentRecord, reused: false };
 }
 
-/** Guarded to PENDING only — once a payment has settled, its provider
- * reference can never be reassigned, malicious or otherwise. */
-export async function attachProviderReference(id: string, providerReference: string): Promise<void> {
-  const { error } = await supabaseAdmin()
+/** Records the reference the payment is known by at the provider. Set once
+ * (the payments_enforce_transition trigger refuses a change), PENDING only.
+ * Returns false if it couldn't be stored. */
+export async function attachProviderReference(id: string, providerReference: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin()
     .from("payments")
     .update({ provider_reference: providerReference })
     .eq("id", id)
-    .eq("status", "PENDING");
-  if (error) safeServerError("attachProviderReference", error);
+    .eq("status", "PENDING")
+    .select("id");
+  if (error) {
+    safeServerError("attachProviderReference", error);
+    return false;
+  }
+  return (data ?? []).length > 0;
 }
 
 export async function markFailed(id: string, reason: string): Promise<void> {
@@ -265,6 +271,14 @@ export function markInitiationUncertain(id: string, reason: string) {
   return mergePaymentMetadata(id, { initiation_uncertain: { at: new Date().toISOString(), reason } });
 }
 
+/** The uncertain initiation was retried and the provider accepted it. */
+export function clearInitiationUncertain(id: string) {
+  return mergePaymentMetadata(id, { initiation_uncertain: null });
+}
+
+export const isInitiationUncertain = (payment: Pick<PaymentRecord, "status" | "metadata">) =>
+  payment.status === "PENDING" && Boolean((payment.metadata ?? {}).initiation_uncertain);
+
 /** A verified provider report that contradicts a payment's final status. */
 export function recordProviderConflict(
   id: string,
@@ -292,6 +306,19 @@ export async function listPendingPaymentsOlderThan(olderThan: Date, limit: numbe
     .order("created_at", { ascending: true })
     .limit(limit);
   if (error) throw new Error(safeServerError("listPendingPaymentsOlderThan", error));
+  return (data as PaymentRecord[] | null) ?? [];
+}
+
+/** Newest PENDING payments first — what a webhook we can't match is most
+ * likely about. */
+export async function listRecentPendingPayments(limit: number): Promise<PaymentRecord[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("payments")
+    .select("*")
+    .eq("status", "PENDING")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(safeServerError("listRecentPendingPayments", error));
   return (data as PaymentRecord[] | null) ?? [];
 }
 

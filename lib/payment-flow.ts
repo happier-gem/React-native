@@ -17,9 +17,20 @@ export const PAYMENT_PROVIDERS: { id: PaymentProvider; name: string }[] = [
     { id: "tnm_mpamba", name: "TNM Mpamba" },
 ];
 
-/** Same format /api/payments/initiate enforces (MW_PHONE_REGEX there). Checked
- * here only to give instant feedback — the server's check is the real one. */
-export const MW_PHONE_REGEX = /^(\+265|0)[89]\d{8}$/;
+/** Number prefixes per network, as documented by INFI-PAY (Airtel 099/098,
+ * Mpamba 088/089). Checked here only for instant feedback — the server's check
+ * (checkPhoneNumber in admin/lib/infi-pay.ts) is the real one. */
+export const NETWORK_PREFIXES: Record<PaymentProvider, string[]> = {
+    airtel_money: ["099", "098"],
+    tnm_mpamba: ["088", "089"],
+};
+
+/** The number in local form (0XXXXXXXXX) if it fits the network, else null. */
+export function checkPhoneForNetwork(phone: string, network: PaymentProvider): string | null {
+    const digits = phone.replace(/[\s-]/g, "");
+    const local = /^\+?265\d{9}$/.test(digits) ? `0${digits.replace(/^\+?265/, "")}` : digits;
+    return /^0\d{9}$/.test(local) && NETWORK_PREFIXES[network].some((p) => local.startsWith(p)) ? local : null;
+}
 
 /** Shape returned by both payment routes. */
 export type ClientPayment = { id: string; status: PaymentStatus; plan: PaidTierId; amount: number; currency: string };

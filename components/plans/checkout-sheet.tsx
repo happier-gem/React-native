@@ -7,7 +7,8 @@ import { useAppTheme } from "@/context/theme-context";
 import type { AvailablePlan, PaidTierId } from "@/context/plan-context";
 import { formatLongDate, formatPlanPrice, intervalLabel, planName, type PlanAction } from "@/lib/plan-display";
 import {
-    MW_PHONE_REGEX,
+    checkPhoneForNetwork,
+    NETWORK_PREFIXES,
     PAYMENT_PROVIDERS,
     type CheckoutState,
     type InitiateInput,
@@ -127,7 +128,8 @@ function ConfirmStep({
     const setPhone = (next: string) => onPayerChange({ ...payer, phone: next });
     const [touched, setTouched] = useState(false);
     const phoneNumber = phone.replace(/\s+/g, "");
-    const phoneValid = MW_PHONE_REGEX.test(phoneNumber);
+    const phoneValid = checkPhoneForNetwork(phoneNumber, provider) !== null;
+    const providerName = PAYMENT_PROVIDERS.find((p) => p.id === provider)?.name ?? "";
 
     return (
         <>
@@ -194,7 +196,7 @@ function ConfirmStep({
             />
             {touched && phone.length > 0 && !phoneValid ? (
                 <Text className="text-sm text-destructive mb-2">
-                    Enter a Malawi mobile number, e.g. 0991234567 or +265991234567.
+                    Enter a {providerName} number starting {NETWORK_PREFIXES[provider].join(" or ")}.
                 </Text>
             ) : null}
 

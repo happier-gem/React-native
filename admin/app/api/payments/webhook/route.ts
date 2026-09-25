@@ -1,22 +1,30 @@
+import { after } from "next/server";
 import { getPaymentProvider } from "@/lib/infi-pay";
-import { getPaymentByProviderReference, recordProviderConflict, transitionPaymentStatus } from "@/lib/payments";
-import { handleSuccessfulPayment } from "@/lib/plan-activation";
+import { getPaymentByProviderReference, listRecentPendingPayments } from "@/lib/payments";
+import { activatePlanForPayment } from "@/lib/plan-activation";
+import { recoverPendingPayments } from "@/lib/payment-recovery";
 import { paymentLog } from "@/lib/payment-log";
 
-// Server-to-server: the provider is the caller, not a mobile user, so this
+// Server-to-server: INFI-PAY is the caller, not a mobile user, so this
 // deliberately does NOT call authenticateMobileRequest(). Authenticity comes
-// entirely from the provider adapter's signature check, which runs before any
-// part of the payload is read.
+// from the adapter's X-Signature check, which runs before the payload is read.
 //
-// Response contract (the provider's retry behavior is NOT known yet — see
-// lib/infi-pay.ts — so nothing here depends on it; pending-payment recovery
-// re-checks with the provider regardless):
-//   401  signature missing/invalid            — never processed
-//   400  authentic but malformed payload      — never processed
-//   200  processed, duplicate, ignored, or for a payment we don't know
-//   503  our database/activation failed       — safe to redeliver
-const retryLater = () =>
-  Response.json({ error: "Temporarily unable to process; please retry." }, { status: 503, headers: { "Retry-After": "60" } });
+// A verified webhook is treated as a PROMPT, not as the truth:
+//   - INFI-PAY's documented payload carries its own transactionId, not the
+//     reference we sent, so it can't always be matched to our payment; and
+//   - GET /payments/transaction-status/:reference is authoritative anyway.
+// So after verifying, we answer 2xx immediately (INFI-PAY requires < 15 s and
+// retries otherwise) and then, in the background, re-check the affected
+// payment(s) with INFI-PAY and settle them through the same code as scheduled
+// recovery — atomic, idempotent, amount-checked. If that background work
+// fails, scheduled recovery picks the payment up.
+//
+// Responses: 401 bad/missing signature · 400 authentic but malformed ·
+// 200 everything else (processed async, duplicate, or ignored event type).
+
+/** How many recent PENDING payments to re-check when the event can't be
+ * matched to a single payment. */
+const UNMATCHED_EVENT_CHECK_LIMIT = 25;
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -34,52 +42,47 @@ export async function POST(request: Request) {
       return Response.json({ ok: true, ignored: true });
   }
 
-  const { providerReference, status } = parsed;
-
-  let payment;
-  try {
-    payment = await getPaymentByProviderReference(providerReference);
-  } catch {
-    return retryLater();
-  }
-  if (!payment) {
-    // Possibly a webhook that beat attachProviderReference() after initiation,
-    // or a foreign event. Acknowledged; recovery will still resolve our side
-    // by asking the provider directly.
-    paymentLog("warn", "webhook.unmatched", { source: "webhook", providerReference, status });
-    return Response.json({ ok: true, matched: false });
-  }
-
-  if (status === "PENDING") return Response.json({ ok: true, alreadyProcessed: false });
-
-  const result = await transitionPaymentStatus(payment.id, status, { failureReason: parsed.failureReason });
-  if (!result.ok) return retryLater();
-
-  paymentLog("info", "webhook.status", {
+  paymentLog("info", "webhook.received", {
     source: "webhook",
-    paymentId: payment.id,
-    providerReference,
-    status,
-    outcome: result.alreadyProcessed ? "already_processed" : "transitioned",
+    providerReference: parsed.reference ?? undefined,
+    status: parsed.reportedStatus,
+    reason: parsed.providerTransactionId ? `transactionId:${parsed.providerTransactionId}` : undefined,
   });
 
-  if (result.alreadyProcessed && result.currentStatus !== status) {
-    // A final status is never moved backwards (see payments.ts state machine).
-    paymentLog("warn", "webhook.conflict", { source: "webhook", paymentId: payment.id, status: result.currentStatus, reason: `provider_reported_${status}` });
-    await recordProviderConflict(payment.id, { localStatus: result.currentStatus, reportedStatus: status, source: "webhook" });
-  }
+  if (parsed.reportedStatus === "PENDING") return Response.json({ ok: true });
 
-  // Activation is idempotent (keyed on the payment id in the database) and
-  // re-checks that the payment really is SUCCESS, so running it on a duplicate
-  // delivery is a no-op, and running it after an earlier failed attempt
-  // completes it.
-  if (result.currentStatus === "SUCCESS") {
-    const activation = await handleSuccessfulPayment(payment);
-    if (!activation.ok) {
-      paymentLog("error", "webhook.activation_failed", { source: "webhook", paymentId: payment.id, reason: activation.error });
-      return retryLater(); // the payment itself stays SUCCESS; recovery also retries activation
+  after(async () => {
+    try {
+      await processVerifiedPaymentEvent(parsed.reference);
+    } catch (e) {
+      paymentLog("error", "webhook.processing_failed", { source: "webhook", reason: e instanceof Error ? e.message : "unknown" });
     }
-  }
+  });
 
-  return Response.json({ ok: true, alreadyProcessed: result.alreadyProcessed });
+  return Response.json({ ok: true, accepted: true });
+}
+
+/** Re-checks with INFI-PAY and settles. Exported for tests. */
+export async function processVerifiedPaymentEvent(reference: string | null) {
+  if (reference) {
+    const payment = await getPaymentByProviderReference(reference);
+    if (payment?.status === "PENDING") {
+      // Check just this one, regardless of age.
+      await recoverPendingPayments({ minAgeMinutes: 0, limit: 1, deps: { listPending: async () => [payment] } });
+      return;
+    }
+    if (payment) {
+      // Already settled — status never changes again. A SUCCESS still gets its
+      // plan applied if that hadn't happened yet (idempotent no-op otherwise).
+      if (payment.status === "SUCCESS") await activatePlanForPayment(payment.id);
+      return;
+    }
+    paymentLog("warn", "webhook.unmatched_reference", { source: "webhook", providerReference: reference });
+  }
+  // No usable reference: re-check the most recent pending payments.
+  await recoverPendingPayments({
+    minAgeMinutes: 0,
+    limit: UNMATCHED_EVENT_CHECK_LIMIT,
+    deps: { listPending: (_olderThan, limit) => listRecentPendingPayments(limit) },
+  });
 }
