@@ -1,61 +1,83 @@
-import { verifyWebhookSignature } from "@/lib/infi-pay";
-import { getPaymentByProviderReference, transitionPaymentStatus } from "@/lib/payments";
+import { getPaymentProvider } from "@/lib/infi-pay";
+import { getPaymentByProviderReference, recordProviderConflict, transitionPaymentStatus } from "@/lib/payments";
 import { handleSuccessfulPayment } from "@/lib/plan-activation";
+import { paymentLog } from "@/lib/payment-log";
 
-// Server-to-server: INFI-PAY is the caller, not a mobile user, so this
+// Server-to-server: the provider is the caller, not a mobile user, so this
 // deliberately does NOT call authenticateMobileRequest(). Authenticity comes
-// entirely from the signature check below.
+// entirely from the provider adapter's signature check, which runs before any
+// part of the payload is read.
 //
-// NOTE: the exact header name and payload shape are placeholders — see the
-// file header in lib/infi-pay.ts. Update both once real docs are available.
+// Response contract (the provider's retry behavior is NOT known yet — see
+// lib/infi-pay.ts — so nothing here depends on it; pending-payment recovery
+// re-checks with the provider regardless):
+//   401  signature missing/invalid            — never processed
+//   400  authentic but malformed payload      — never processed
+//   200  processed, duplicate, ignored, or for a payment we don't know
+//   503  our database/activation failed       — safe to redeliver
+const retryLater = () =>
+  Response.json({ error: "Temporarily unable to process; please retry." }, { status: 503, headers: { "Retry-After": "60" } });
+
 export async function POST(request: Request) {
   const rawBody = await request.text();
-  const signature = request.headers.get("x-infipay-signature");
+  const parsed = getPaymentProvider().parseWebhook(rawBody, request.headers);
 
-  if (!verifyWebhookSignature(rawBody, signature)) {
-    console.error("[payments:webhook] signature verification failed");
-    return Response.json({ error: "Invalid signature" }, { status: 401 });
+  switch (parsed.kind) {
+    case "invalid_signature":
+      paymentLog("warn", "webhook.invalid_signature", { source: "webhook" });
+      return Response.json({ error: "Invalid signature" }, { status: 401 });
+    case "malformed":
+      paymentLog("warn", "webhook.malformed", { source: "webhook", reason: parsed.reason });
+      return Response.json({ error: "Malformed payload" }, { status: 400 });
+    case "ignored":
+      paymentLog("info", "webhook.ignored", { source: "webhook", reason: parsed.reason });
+      return Response.json({ ok: true, ignored: true });
   }
 
-  let event: { providerReference?: string; status?: string; failureReason?: string };
+  const { providerReference, status } = parsed;
+
+  let payment;
   try {
-    event = JSON.parse(rawBody);
+    payment = await getPaymentByProviderReference(providerReference);
   } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+    return retryLater();
   }
-
-  if (!event.providerReference) {
-    return Response.json({ error: "Missing providerReference" }, { status: 400 });
-  }
-
-  const payment = await getPaymentByProviderReference(event.providerReference);
   if (!payment) {
-    // Ack with 200 so the provider doesn't retry forever, but log it — this
-    // means either a stale/foreign event or a reference mismatch worth
-    // investigating, not something the caller should keep retrying.
-    console.error("[payments:webhook] no local payment for providerReference", event.providerReference);
-    return Response.json({ ok: true });
+    // Possibly a webhook that beat attachProviderReference() after initiation,
+    // or a foreign event. Acknowledged; recovery will still resolve our side
+    // by asking the provider directly.
+    paymentLog("warn", "webhook.unmatched", { source: "webhook", providerReference, status });
+    return Response.json({ ok: true, matched: false });
   }
 
-  const nextStatus = event.status === "SUCCESS" ? "SUCCESS" : event.status === "FAILED" ? "FAILED" : null;
-  if (!nextStatus) {
-    return Response.json({ error: "Unrecognized status" }, { status: 400 });
+  if (status === "PENDING") return Response.json({ ok: true, alreadyProcessed: false });
+
+  const result = await transitionPaymentStatus(payment.id, status, { failureReason: parsed.failureReason });
+  if (!result.ok) return retryLater();
+
+  paymentLog("info", "webhook.status", {
+    source: "webhook",
+    paymentId: payment.id,
+    providerReference,
+    status,
+    outcome: result.alreadyProcessed ? "already_processed" : "transitioned",
+  });
+
+  if (result.alreadyProcessed && result.currentStatus !== status) {
+    // A final status is never moved backwards (see payments.ts state machine).
+    paymentLog("warn", "webhook.conflict", { source: "webhook", paymentId: payment.id, status: result.currentStatus, reason: `provider_reported_${status}` });
+    await recordProviderConflict(payment.id, { localStatus: result.currentStatus, reportedStatus: status, source: "webhook" });
   }
 
-  const result = await transitionPaymentStatus(payment.id, nextStatus, { failureReason: event.failureReason });
-  if (!result.ok) return Response.json({ error: result.error }, { status: 500 });
-
-  // Activation is idempotent on its own (keyed on the payment id, see
-  // lib/plan-activation.ts), so it runs on replays too: a replay for an
-  // already-activated payment is a no-op, and a replay after a failed
-  // activation is what completes it. Activation re-reads the payment and only
-  // acts if the database says SUCCESS, so a SUCCESS replay for a payment that
-  // actually settled as FAILED grants nothing.
-  if (nextStatus === "SUCCESS") {
+  // Activation is idempotent (keyed on the payment id in the database) and
+  // re-checks that the payment really is SUCCESS, so running it on a duplicate
+  // delivery is a no-op, and running it after an earlier failed attempt
+  // completes it.
+  if (result.currentStatus === "SUCCESS") {
     const activation = await handleSuccessfulPayment(payment);
     if (!activation.ok) {
-      // Non-2xx so INFI-PAY retries delivery; the payment itself stays SUCCESS.
-      return Response.json({ error: "Plan activation failed" }, { status: 500 });
+      paymentLog("error", "webhook.activation_failed", { source: "webhook", paymentId: payment.id, reason: activation.error });
+      return retryLater(); // the payment itself stays SUCCESS; recovery also retries activation
     }
   }
 

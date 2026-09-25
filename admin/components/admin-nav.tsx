@@ -57,6 +57,16 @@ function SettingsIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+function PaymentsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M14.75 9.25c-.5-.9-1.6-1.5-2.75-1.5-1.5 0-2.75.85-2.75 2.1 0 2.9 5.5 1.4 5.5 4.3 0 1.25-1.25 2.1-2.75 2.1-1.2 0-2.3-.6-2.8-1.55" />
+      <path d="M12 6.25v1.5M12 16.25v1.5" />
+    </svg>
+  );
+}
+
 function MenuIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -69,6 +79,7 @@ const links = [
   { href: "/admin", label: "Overview", Icon: OverviewIcon },
   { href: "/admin/users", label: "Users", Icon: UsersIcon },
   { href: "/admin/subscriptions", label: "Subscriptions", Icon: SubscriptionsIcon },
+  { href: "/admin/payments", label: "Payments", Icon: PaymentsIcon },
   { href: "/admin/analytics", label: "Analytics", Icon: AnalyticsIcon },
   { href: "/admin/settings", label: "Settings", Icon: SettingsIcon },
 ] as const;

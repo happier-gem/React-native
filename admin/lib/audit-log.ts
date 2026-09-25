@@ -12,7 +12,10 @@ export type AuditAction =
   | "plan.upgraded"
   | "plan.downgrade_scheduled"
   | "plan.downgrade_applied"
-  | "plan.expired";
+  | "plan.expired"
+  // An admin manually triggered pending-payment recovery (asks the provider;
+  // never grants anything by itself).
+  | "payments.recovery_run";
 
 /** actor_user_id for entries not caused by a signed-in admin. */
 export const SYSTEM_ACTOR = "system";
