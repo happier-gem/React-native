@@ -146,6 +146,41 @@ describe("pending payment recovery", () => {
     expect(t.deps.activate).not.toHaveBeenCalledWith("p1");
   });
 
+  it("a SUCCESS for a different amount is never applied — recorded for investigation", async () => {
+    const t = makeDeps({
+      pending: [pendingPayment("p1")],
+      provider: { "ref-p1": { kind: "status", status: "SUCCESS", amount: 50, currency: "MWK" } },
+    });
+    const summary = await recoverPendingPayments({ deps: t.deps });
+    expect(summary).toMatchObject({ amountMismatch: 1, succeeded: 0 });
+    expect(t.statuses.get("p1")).toBe("PENDING");
+    expect(t.deps.transition).not.toHaveBeenCalled();
+    expect(t.deps.recordConflict).toHaveBeenCalledWith("p1", expect.objectContaining({ source: "recovery", localStatus: "PENDING" }));
+  });
+
+  it("a SUCCESS in another currency is never applied", async () => {
+    const t = makeDeps({
+      pending: [pendingPayment("p1")],
+      provider: { "ref-p1": { kind: "status", status: "SUCCESS", amount: 5000, currency: "USD" } },
+    });
+    expect(await recoverPendingPayments({ deps: t.deps })).toMatchObject({ amountMismatch: 1 });
+    expect(t.statuses.get("p1")).toBe("PENDING");
+  });
+
+  it("the matching amount (as a string from the provider) is accepted", async () => {
+    const t = makeDeps({
+      pending: [pendingPayment("p1")],
+      provider: { "ref-p1": { kind: "status", status: "SUCCESS", amount: 5000, currency: "MWK" } },
+    });
+    expect(await recoverPendingPayments({ deps: t.deps })).toMatchObject({ succeeded: 1, amountMismatch: 0 });
+  });
+
+  it("minAgeMinutes: 0 (webhook-triggered) checks brand-new payments", async () => {
+    const t = makeDeps({ pending: [pendingPayment("p1")], provider: { "ref-p1": { kind: "status", status: "PENDING" } } });
+    await recoverPendingPayments({ minAgeMinutes: 0, deps: t.deps });
+    expect(t.deps.listPending).toHaveBeenCalledWith(NOW, 50);
+  });
+
   it("one payment's error doesn't stop the batch", async () => {
     const t = makeDeps({
       pending: [pendingPayment("p1"), pendingPayment("p2")],

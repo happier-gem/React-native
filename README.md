@@ -3,10 +3,10 @@
 A mobile app for tracking the subscriptions you pay for, with paid Starter/Pro
 tiers bought through mobile money (INFI-PAY, MWK).
 
-> **Status: not production-ready.** The INFI-PAY integration is built against a
-> placeholder contract (no official docs or credentials yet), and the latest
-> database migrations have not been applied to the real Supabase project. See
-> [docs/payments.md](docs/payments.md#production-readiness).
+> **Status: not production-ready.** The INFI-PAY integration follows INFI-PAY's
+> API documentation but has not been run against their API yet (no credentials),
+> and the latest database migrations have not been applied to the real Supabase
+> project. See [docs/payments.md](docs/payments.md#production-readiness).
 
 ## Architecture
 

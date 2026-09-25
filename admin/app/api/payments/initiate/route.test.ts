@@ -12,8 +12,13 @@ const db = vi.hoisted(() => {
   const from = () => {
     let payload: Record<string, unknown> = {};
     let isUpdate = false;
+    let columns = "*";
     const builder: Record<string, unknown> = {};
-    for (const m of ["select", "eq", "gte", "lt", "order", "limit"]) builder[m] = () => builder;
+    for (const m of ["eq", "gte", "lt", "order", "limit"]) builder[m] = () => builder;
+    builder.select = (cols = "*") => {
+      columns = cols;
+      return builder;
+    };
     builder.insert = (p: Record<string, unknown>) => {
       payload = p;
       state.inserts.push(p);
@@ -24,7 +29,8 @@ const db = vi.hoisted(() => {
       state.updates.push(p);
       return builder;
     };
-    builder.maybeSingle = async () => ({ data: state.existing, error: null });
+    // A metadata read (mergePaymentMetadata) always finds the row.
+    builder.maybeSingle = async () => ({ data: columns === "metadata" ? { metadata: {} } : state.existing, error: null });
     builder.single = async () => ({
       data: { id: "pay-1", provider_reference: null, metadata: {}, created_at: new Date().toISOString(), ...payload },
       error: null,

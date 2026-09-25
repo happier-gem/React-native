@@ -65,16 +65,28 @@ covered by `admin/lib/database.test.ts` (runs the real SQL in PGlite).
 
 ## Webhook contract (`POST /api/payments/webhook`)
 
-| Response | When | Provider should |
-|---|---|---|
-| 401 | Signature missing/invalid (or webhook secret not configured) | not retry |
-| 400 | Authentic but malformed (bad JSON, missing reference, >64 KB) | not retry |
-| 200 | Processed, duplicate, unknown event type/status (ignored), or unknown reference | stop |
-| 503 + `Retry-After: 60` | Our database or activation failed | retry |
+Register it in the INFI-PAY dashboard (Webhooks) for `payment.success` and
+`payment.failed`. INFI-PAY signs every delivery with `X-Signature` =
+hex HMAC-SHA256 of the raw body, and retries with backoff unless it gets a 2xx
+within 15 s.
 
-INFI-PAY's actual retry behavior is **unknown**. Nothing depends on it: the
-recovery job independently asks INFI-PAY about every PENDING payment and retries
-activation for every SUCCESS payment without a plan change.
+**A verified webhook is a prompt, not the truth.** INFI-PAY's documented payload
+(`{ event, data: { transactionId, amount, currency, status, provider, externalRef } }`)
+does not include the reference we sent, so it can't always be tied to one of our
+payments. After verifying the signature the route answers 200 immediately and,
+in the background (`after()`), asks INFI-PAY for the real status
+(`GET /payments/transaction-status/:reference`) of the matching payment — or of
+the 25 most recent PENDING payments when it can't be matched — and settles them
+through the same code as scheduled recovery.
+
+| Response | When |
+|---|---|
+| 401 | Signature missing/invalid, or the webhook secret isn't configured |
+| 400 | Authentic but malformed (not JSON, no `event`/`data`, > 64 KB) |
+| 200 `{accepted: true}` | Verified `payment.success`/`payment.failed` — re-check scheduled |
+| 200 | `payment.pending`, or an event we don't use (`payout.*`, `refund.*`, unknown) |
+
+If the background work fails, scheduled recovery settles the payment later.
 
 ## Pending-payment recovery
 
@@ -197,27 +209,52 @@ Payments page lists missing/invalid variable **names** (never values).
 
 ## INFI-PAY integration status
 
+Built from INFI-PAY's API documentation (base URL `https://api.infi-pay.com/api/v1`).
+
 | Area | Status |
 |---|---|
-| Provider abstraction (`admin/lib/payment-provider.ts`) | Implemented. Nothing outside the adapter reads provider fields. |
-| Adapter (`admin/lib/infi-pay.ts`): config, timeouts, fail-closed, uncertain vs rejected | Implemented. |
-| Endpoint paths, request/response fields, status strings | **Placeholder** — waiting for official documentation. |
-| Webhook header, signature scheme, payload fields | **Placeholder** — waiting for documentation. |
-| Retry semantics, payment lifetime/SLA, idempotency of our `reference` | **Unknown** — waiting for documentation. |
-| Sandbox & production credentials | **Not available.** |
-| Real payment tested end to end | **No.** |
+| Auth (`x-api-key`, scopes `payments.initiate` + `payments.read`) | Implemented |
+| Response envelope `{success, data}` / `{success:false, error}` | Implemented |
+| `POST /payments/collections` (airtel / mpamba, reference, amount, currency, phone) | Implemented |
+| `GET /payments/transaction-status/:reference` | Implemented |
+| Statuses pending/processing/success/failed/expired/cancelled/refunded | Implemented (expired → FAILED; refunded → flagged, never applied) |
+| Phone prefixes (Airtel 099/098, Mpamba 088/089) | Implemented, server and app |
+| Idempotent `reference` | Relied on: our payment id is the reference; uncertain initiations are resent with it |
+| Webhook X-Signature + payload + retry | Implemented; payload used only as a trigger |
+| SUCCESS amount/currency must match our record | Implemented (mismatch → flagged, not applied) |
+| Sandbox / credentials | **Not available** — nothing has been sent to INFI-PAY |
+| Real payment tested end to end | **No** |
 
-### When the official contract arrives
+### Questions for INFI-PAY (not answered by the docs)
 
-1. Compare it with `PaymentProvider` (`payment-provider.ts`). Change the interface
-   only if the contract genuinely can't fit it.
-2. Replace only the `PLACEHOLDER` sections in `infi-pay.ts`.
-3. Update `admin/lib/infi-pay.test.ts` and the webhook tests to the real shapes.
-4. With **sandbox** credentials (`INFI_PAY_ENVIRONMENT=sandbox`), test: initiation,
-   provider response, status lookup, success, failure, cancellation, webhook
-   signature, duplicate webhook, delayed webhook, pending recovery — then run
-   [the device checklist](device-testing.md).
-5. Set the pending-policy values from INFI-PAY's SLA.
+1. **Webhook reference:** can the webhook payload include the `reference` we sent?
+   (It currently only has `transactionId`/`externalRef`, which we can't look up with
+   an API key.) Works without it — but with it, each event re-checks one payment
+   instead of scanning recent ones.
+2. **"completed" vs "success":** the transaction-status example returns
+   `"completed"`; the status list says `"success"`. Which is real? (Both are accepted.)
+3. **Sandbox:** is there a sandbox base URL and test keys (`sk_test_…`?) and test
+   phone numbers that simulate success/failure/cancel/timeout?
+4. **Unknown reference:** what does `transaction-status` return for a reference it
+   has never seen (404?).
+5. **Reference rules:** maximum length / allowed characters? (We send a UUID, 36 chars.)
+   Is uniqueness per merchant account, forever?
+6. **Phone format:** is `+265…` accepted, or only `0…`? (We send `0…`.)
+7. **Pending lifetime:** how long before an unconfirmed USSD collection becomes `expired`?
+8. **Refunds:** does a refund change the original collection's status to `refunded`?
+9. **Webhook retries:** for how long, and from which IP addresses?
+10. **Rate limits:** the numbers for collections and transaction-status.
+11. **Amounts:** are decimals allowed for MWK?
+
+### Going live
+
+1. Create an API key with only `payments.initiate` + `payments.read`; put it in
+   `admin/.env.local` / the host's env (never in code, chat or the mobile app).
+2. Register the webhook (HTTPS, public) for `payment.success` and `payment.failed`;
+   store the secret as `INFI_PAY_WEBHOOK_SECRET`.
+3. Test with sandbox credentials first (`INFI_PAY_ENVIRONMENT=sandbox`; a `sk_live_`
+   key is refused in sandbox mode), then run [the device checklist](device-testing.md).
+4. Set the pending-policy values from INFI-PAY's answer to question 7.
 
 ## Logging
 
@@ -247,11 +284,11 @@ Correlate with `paymentId` (ours) and `providerReference` (INFI-PAY's).
 | Server-authoritative pricing & activation | READY |
 | Idempotency & concurrency (DB-enforced) | READY |
 | Payment state machine (DB-enforced) | READY — after migration |
-| Webhook verification & handling | READY for the placeholder contract; PROVIDER INFORMATION REQUIRED |
+| Webhook verification & handling | READY against the documented contract; untested live |
 | Pending recovery & reconciliation | READY; schedule MANUAL DEPLOYMENT REQUIRED |
 | Supabase migrations 20260925/20260926 | MANUAL DEPLOYMENT REQUIRED |
 | RLS / privileges | READY — privilege revoke applies with the migration |
-| INFI-PAY contract & credentials | PROVIDER INFORMATION REQUIRED — BLOCKED |
+| INFI-PAY integration | Implemented from docs; credentials + answers to the open questions REQUIRED |
 | Real device payment test | BLOCKED (needs provider) |
 | Prices, upgrade/downgrade/renewal rules, pending policy | BUSINESS DECISION REQUIRED |
 | CI | READY — needs the two publishable-key repository secrets; not yet run on GitHub |
