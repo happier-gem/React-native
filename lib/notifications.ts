@@ -124,3 +124,12 @@ export async function sendTestNotifications() {
 export async function dismissAllDisplayedNotifications() {
     await Notifications.dismissAllNotificationsAsync();
 }
+
+/** Budget alert shown right away (e.g. "Music is over budget"). */
+export async function notifyBudget(budgetId: string, title: string, body: string) {
+    await Notifications.scheduleNotificationAsync({
+        identifier: `budget-${budgetId}`,
+        content: { title, body, autoDismiss: true },
+        trigger: null,
+    });
+}
