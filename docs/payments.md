@@ -160,22 +160,24 @@ kept). The app offers renewal only within 7 days of expiry.
 All are idempotent and change no existing rows. A fresh project runs
 `schema.sql` instead (it contains all of the above).
 
-### Deployment status (checked 2026-09-26, read-only)
+### Deployment status — applied 2026-09-28
 
-A read-only probe of the configured Supabase project showed:
+On 2026-09-28 the three migrations were applied to the Supabase project
+(`Mobile-Application`, Free plan, PostgreSQL 17.6, eu-west-1), each in its own
+transaction, after:
 
-- `subscriptions`, `admin_audit_log`, `payments` exist (payments has all expected columns).
-- `user_plans`, `user_plan_events`, `apply_user_plan_transition()`, `payment_overview` **do not exist** → Phase 4 and Phase 6 migrations **not applied**.
-- The publishable key reads `[]` from every table (RLS works), but still holds table
-  privileges — removed by the Phase 6 migration.
-- Constraint names couldn't be inspected through the REST API; `verify.sql` checks them.
+- a JSON export of all existing rows (3 subscriptions, 0 payments, 0 audit
+  entries) to `admin/supabase/backups/` — git-ignored; the Free plan has no
+  Supabase backups;
+- a read-only pre-check (roles present, `set_updated_at()` present, payments
+  already had its Phase 2 constraints, no conflicts).
 
-**Nothing has been executed against the real database.** To deploy:
+Result: `verify.sql` **36/36 ok**; row counts unchanged. Through the REST API the
+server's secret key reads every table, and the publishable key is refused
+("permission denied") on every table and on `payment_overview`.
 
-1. Back up (Supabase → Database → Backups, or `pg_dump`).
-2. In the SQL editor, run each migration above in order (the first is safe even if already applied).
-3. Run `verify.sql`; every row must be `ok = true`.
-4. Deploy the admin server **after** the migrations (the plan endpoints and the Payments page need them).
+For future migrations: export data first, run each new file in a transaction
+(SQL editor or a Postgres client over the session pooler), then `verify.sql`.
 
 ### Security model
 
@@ -235,8 +237,8 @@ Built from INFI-PAY's API documentation (base URL `https://api.infi-pay.com/api/
    `"completed"`; the status list says `"success"`. Which is real? (Both are accepted.)
 3. **Sandbox:** is there a sandbox base URL and test keys (`sk_test_…`?) and test
    phone numbers that simulate success/failure/cancel/timeout?
-4. **Unknown reference:** what does `transaction-status` return for a reference it
-   has never seen (404?).
+4. ~~**Unknown reference**~~ — answered by a live check (2026-09-28): HTTP 404,
+   `"Transaction not found: <reference>"`. Handled: flagged for review, never failed.
 5. **Reference rules:** maximum length / allowed characters? (We send a UUID, 36 chars.)
    Is uniqueness per merchant account, forever?
 6. **Phone format:** is `+265…` accepted, or only `0…`? (We send `0…`.)
@@ -283,11 +285,11 @@ Correlate with `paymentId` (ours) and `providerReference` (INFI-PAY's).
 |---|---|
 | Server-authoritative pricing & activation | READY |
 | Idempotency & concurrency (DB-enforced) | READY |
-| Payment state machine (DB-enforced) | READY — after migration |
+| Payment state machine (DB-enforced) | READY |
 | Webhook verification & handling | READY against the documented contract; untested live |
 | Pending recovery & reconciliation | READY; schedule MANUAL DEPLOYMENT REQUIRED |
-| Supabase migrations 20260925/20260926 | MANUAL DEPLOYMENT REQUIRED |
-| RLS / privileges | READY — privilege revoke applies with the migration |
+| Supabase migrations 20260924/25/26 | READY — applied and verified 2026-09-28 |
+| RLS / privileges | READY — verified live |
 | INFI-PAY integration | Implemented from docs; credentials + answers to the open questions REQUIRED |
 | Real device payment test | BLOCKED (needs provider) |
 | Prices, upgrade/downgrade/renewal rules, pending policy | BUSINESS DECISION REQUIRED |
