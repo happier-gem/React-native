@@ -33,6 +33,8 @@ export type AvailablePlan = {
     price: number;
     currency: string;
     interval: "monthly" | null;
+    /** What the plan includes, e.g. "Track up to 20 subscriptions" (from the server). */
+    features?: string[];
 };
 
 type PlanResponse = { plan: CurrentPlan; availablePlans: AvailablePlan[] };
