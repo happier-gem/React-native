@@ -78,6 +78,12 @@ with checks(check_name, ok) as (
     ('RLS enabled: user_settings',             coalesce((select relrowsecurity from pg_class where oid = to_regclass('public.user_settings')), false)),
     ('anon has no access: user_settings',      not coalesce(has_table_privilege('anon', to_regclass('public.user_settings'), 'SELECT,INSERT,UPDATE,DELETE'), true)),
     ('user_settings reminder days check',
-      exists (select 1 from pg_constraint where conname = 'user_settings_reminder_days_check' and conrelid = to_regclass('public.user_settings')))
+      exists (select 1 from pg_constraint where conname = 'user_settings_reminder_days_check' and conrelid = to_regclass('public.user_settings'))),
+
+    -- budgets (plan features)
+    ('table public.budgets exists',            to_regclass('public.budgets') is not null),
+    ('RLS enabled: budgets',                   coalesce((select relrowsecurity from pg_class where oid = to_regclass('public.budgets')), false)),
+    ('anon has no access: budgets',            not coalesce(has_table_privilege('anon', to_regclass('public.budgets'), 'SELECT,INSERT,UPDATE,DELETE'), true)),
+    ('budgets one-per-category unique index',  coalesce((select indisunique from pg_index where indexrelid = to_regclass('public.budgets_user_category_unique_idx')), false))
 )
 select check_name, ok from checks order by ok, check_name;
