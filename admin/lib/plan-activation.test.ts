@@ -225,7 +225,7 @@ describe("expiration", () => {
 
 describe("pricing", () => {
   it("stored payment amounts come from the server's plan table", () => {
-    expect(PLANS.starter).toMatchObject({ price: 2000, currency: "MWK", interval: "monthly" });
-    expect(PLANS.pro).toMatchObject({ price: 5000, currency: "MWK", interval: "monthly" });
+    expect(PLANS.starter).toMatchObject({ price: 50, currency: "MWK", interval: "monthly" });
+    expect(PLANS.pro).toMatchObject({ price: 500, currency: "MWK", interval: "monthly" });
   });
 });

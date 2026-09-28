@@ -51,8 +51,8 @@ describe("GET /api/me/plan", () => {
     });
     expect(body.availablePlans).toEqual([
       { id: "free", name: "Free", price: 0, currency: "MWK", interval: null },
-      { id: "starter", name: "Starter", price: 2000, currency: "MWK", interval: "monthly" },
-      { id: "pro", name: "Pro", price: 5000, currency: "MWK", interval: "monthly" },
+      { id: "starter", name: "Starter", price: 50, currency: "MWK", interval: "monthly" },
+      { id: "pro", name: "Pro", price: 500, currency: "MWK", interval: "monthly" },
     ]);
   });
 

@@ -73,8 +73,8 @@ beforeEach(() => {
 
 describe("POST /api/payments/initiate pricing", () => {
   it.each([
-    ["starter", 2000],
-    ["pro", 5000],
+    ["starter", 50],
+    ["pro", 500],
   ])("%s is charged the server price, whatever amount the client sends", async (plan, expected) => {
     const res = await initiate({ ...VALID, plan, amount: 1, price: 1, currency: "USD", status: "SUCCESS" });
     expect(res.status).toBe(201);
@@ -102,7 +102,7 @@ describe("POST /api/payments/initiate — INFI-PAY contract", () => {
     expect(db.state.inserts[0]).toMatchObject({ internal_reference: "key-1" });
     expect(db.state.updates[0]).toEqual({ provider_reference: "pay-1" });
     expect(provider.initiateCollection).toHaveBeenCalledWith({
-      amount: 5000,
+      amount: 500,
       currency: "MWK",
       phoneNumber: "0991234567",
       network: "airtel_money",
