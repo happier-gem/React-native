@@ -172,14 +172,21 @@ export default function PlansScreen() {
 
     return (
         <ThemedSafeAreaView>
-            <View className="flex-row items-center px-5 pt-5 pb-2">
-                <Pressable onPress={goBack} accessibilityRole="button" accessibilityLabel="Back" className="mr-3">
-                    <ThemedText tone="accent" className="font-semibold">
-                        {"< Back"}
-                    </ThemedText>
-                </Pressable>
+            {/* Back and title on one row, like the subscription forms: equal-width
+                side slots keep the title centered on the full row. */}
+            <View className="flex-row items-center px-5 pt-5 pb-4">
+                <View style={{ minWidth: 60 }}>
+                    <Pressable onPress={goBack} accessibilityRole="button" accessibilityLabel="Back">
+                        <ThemedText tone="accent" className="font-semibold">
+                            {"< Back"}
+                        </ThemedText>
+                    </Pressable>
+                </View>
+                <ThemedText className="flex-1 text-center text-xl font-extrabold" accessibilityRole="header">
+                    Plans
+                </ThemedText>
+                <View style={{ minWidth: 60 }} />
             </View>
-            <ThemedText className="text-3xl font-extrabold px-5 pb-4">Plans</ThemedText>
 
             <ScrollView className="px-5" contentContainerStyle={{ paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
                 {!currentPlan && loading ? (

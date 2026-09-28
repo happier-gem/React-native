@@ -220,6 +220,17 @@ describe("getTransactionStatus", () => {
     });
   });
 
+  it("keeps INFI-PAY's explanation as the failure reason (live shape: upper-case status + message)", async () => {
+    fetchMock.mockResolvedValue(txn("FAILED", { message: "Wrong PIN entered. Forgot your PIN? …" }));
+    expect(await infiPayProvider.getTransactionStatus("COLMUL079")).toMatchObject({
+      kind: "status",
+      status: "FAILED",
+      failureReason: "Wrong PIN entered. Forgot your PIN? …",
+    });
+    fetchMock.mockResolvedValue(txn("PROCESSING", { message: "Transaction in Progress" }));
+    expect(await infiPayProvider.getTransactionStatus("COLMUL079")).toMatchObject({ status: "PENDING", failureReason: undefined });
+  });
+
   it("'refunded' and unrecognized statuses are unknown — never guessed", async () => {
     fetchMock.mockResolvedValueOnce(txn("refunded")).mockResolvedValueOnce(txn("reversed"));
     expect(await infiPayProvider.getTransactionStatus("ref-1")).toEqual({ kind: "unknown_status", rawStatus: "refunded" });
