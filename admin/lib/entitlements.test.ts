@@ -3,30 +3,34 @@ import { ENTITLEMENTS, featureList } from "@/lib/entitlements";
 import { checkCanActivateSubscription } from "@/lib/plan-limits";
 import { DEFAULT_SETTINGS, effectiveSettings, validateSettingsUpdate } from "@/lib/user-settings";
 
-describe("plan contents (agreed table)", () => {
+describe("plan contents (agreed table, no outside services)", () => {
   it("subscription limits: Free 5, Starter 20, Pro unlimited", () => {
     expect(ENTITLEMENTS.free.maxActiveSubscriptions).toBe(5);
     expect(ENTITLEMENTS.starter.maxActiveSubscriptions).toBe(20);
     expect(ENTITLEMENTS.pro.maxActiveSubscriptions).toBeNull();
   });
 
-  it("SMS: Starter and Pro; WhatsApp: Pro only", () => {
-    expect([ENTITLEMENTS.free.smsReminders, ENTITLEMENTS.starter.smsReminders, ENTITLEMENTS.pro.smsReminders]).toEqual([false, true, true]);
-    expect([ENTITLEMENTS.free.whatsappReminders, ENTITLEMENTS.starter.whatsappReminders, ENTITLEMENTS.pro.whatsappReminders]).toEqual([false, false, true]);
-  });
-
   it("feature lists for the Plans screen", () => {
+    expect(featureList("free")).toEqual(["Track up to 5 subscriptions", "Reminder 1 day before renewal", "This month's total spending"]);
     expect(featureList("starter")).toEqual([
       "Track up to 20 subscriptions",
       "Choose when you're reminded (1 day / 3 days / 7 days before)",
       "Monthly & yearly spending breakdown",
       "One monthly budget with alerts",
-      "SMS reminders",
-      "See foreign subscriptions in MWK",
     ]);
-    expect(featureList("pro")).toContain("SMS & WhatsApp reminders");
-    expect(featureList("pro")).toContain("Export your data (CSV)");
-    expect(featureList("free")[0]).toBe("Track up to 5 subscriptions");
+    expect(featureList("pro")).toEqual([
+      "Unlimited subscriptions",
+      "Up to 3 reminders per renewal (1 day / 3 days / 7 days before)",
+      "Full insights, including spending by category",
+      "Budgets for each category",
+      "Export your data (CSV)",
+    ]);
+  });
+
+  it("nothing needing an outside service is offered", () => {
+    for (const tier of ["free", "starter", "pro"] as const) {
+      expect(featureList(tier).join(" ")).not.toMatch(/SMS|WhatsApp|MWK/);
+    }
   });
 });
 
@@ -68,36 +72,22 @@ describe("reminder settings", () => {
   });
 
   it("Starter chooses one of 1/3/7 days", () => {
-    expect(validateSettingsUpdate({ reminderDays: [7] }, ENTITLEMENTS.starter, DEFAULT_SETTINGS)).toMatchObject({ ok: true, value: { reminderDays: [7] } });
+    expect(validateSettingsUpdate({ reminderDays: [7] }, ENTITLEMENTS.starter, DEFAULT_SETTINGS)).toEqual({ ok: true, value: { reminderDays: [7] } });
     expect(validateSettingsUpdate({ reminderDays: [1, 7] }, ENTITLEMENTS.starter, DEFAULT_SETTINGS)).toMatchObject({ ok: false, status: 403 });
     expect(validateSettingsUpdate({ reminderDays: [14] }, ENTITLEMENTS.starter, DEFAULT_SETTINGS)).toMatchObject({ ok: false, status: 403 });
   });
 
   it("Pro can have up to three reminders", () => {
-    expect(validateSettingsUpdate({ reminderDays: [7, 1, 3] }, ENTITLEMENTS.pro, DEFAULT_SETTINGS)).toMatchObject({ ok: true, value: { reminderDays: [1, 3, 7] } });
+    expect(validateSettingsUpdate({ reminderDays: [7, 1, 3] }, ENTITLEMENTS.pro, DEFAULT_SETTINGS)).toEqual({ ok: true, value: { reminderDays: [1, 3, 7] } });
   });
 
   it("after a downgrade, stored choices are kept but only what the plan allows applies", () => {
-    const stored = { reminderDays: [1, 3, 7], smsReminders: true, whatsappReminders: true, reminderPhone: "0991234567" };
-    expect(effectiveSettings(stored, ENTITLEMENTS.starter)).toEqual({ reminderDays: [1], smsReminders: true, whatsappReminders: false, reminderPhone: "0991234567" });
-    expect(effectiveSettings(stored, ENTITLEMENTS.free)).toEqual({ reminderDays: [1], smsReminders: false, whatsappReminders: false, reminderPhone: "0991234567" });
-  });
-
-  it("SMS needs Starter+ and a phone; WhatsApp needs Pro", () => {
-    expect(validateSettingsUpdate({ smsReminders: true, reminderPhone: "0991234567" }, ENTITLEMENTS.free, DEFAULT_SETTINGS)).toMatchObject({ ok: false, status: 403 });
-    expect(validateSettingsUpdate({ smsReminders: true }, ENTITLEMENTS.starter, DEFAULT_SETTINGS)).toMatchObject({ ok: false, status: 400 });
-    expect(validateSettingsUpdate({ smsReminders: true, reminderPhone: "+265 99 123 4567" }, ENTITLEMENTS.starter, DEFAULT_SETTINGS)).toMatchObject({
-      ok: true,
-      value: { smsReminders: true, reminderPhone: "0991234567" },
-    });
-    expect(validateSettingsUpdate({ whatsappReminders: true, reminderPhone: "0991234567" }, ENTITLEMENTS.starter, DEFAULT_SETTINGS)).toMatchObject({ ok: false, status: 403 });
-    expect(validateSettingsUpdate({ whatsappReminders: true, reminderPhone: "0991234567" }, ENTITLEMENTS.pro, DEFAULT_SETTINGS)).toMatchObject({ ok: true });
+    expect(effectiveSettings({ reminderDays: [1, 3, 7] }, ENTITLEMENTS.starter)).toEqual({ reminderDays: [1] });
+    expect(effectiveSettings({ reminderDays: [3, 7] }, ENTITLEMENTS.free)).toEqual({ reminderDays: [1] });
   });
 
   it("rejects malformed input", () => {
     expect(validateSettingsUpdate({ reminderDays: [] }, ENTITLEMENTS.pro, DEFAULT_SETTINGS)).toMatchObject({ ok: false, status: 400 });
     expect(validateSettingsUpdate({ reminderDays: ["7"] }, ENTITLEMENTS.pro, DEFAULT_SETTINGS)).toMatchObject({ ok: false, status: 400 });
-    expect(validateSettingsUpdate({ smsReminders: "yes" }, ENTITLEMENTS.pro, DEFAULT_SETTINGS)).toMatchObject({ ok: false, status: 400 });
-    expect(validateSettingsUpdate({ reminderPhone: "12345" }, ENTITLEMENTS.pro, DEFAULT_SETTINGS)).toMatchObject({ ok: false, status: 400 });
   });
 });

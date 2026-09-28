@@ -46,9 +46,6 @@ export type Entitlements = {
     insights: "basic" | "breakdown" | "full";
     budgets: "none" | "overall" | "per_category";
     export: boolean;
-    smsReminders: boolean;
-    whatsappReminders: boolean;
-    currencyConversion: boolean;
 };
 
 /** Until the server answers, assume the most limited plan — never show more
@@ -60,19 +57,13 @@ export const FREE_ENTITLEMENTS: Entitlements = {
     insights: "basic",
     budgets: "none",
     export: false,
-    smsReminders: false,
-    whatsappReminders: false,
-    currencyConversion: false,
 };
 
 export type ReminderSettings = {
     reminderDays: number[];
-    smsReminders: boolean;
-    whatsappReminders: boolean;
-    reminderPhone: string | null;
 };
 
-const DEFAULT_REMINDERS: ReminderSettings = { reminderDays: [1], smsReminders: false, whatsappReminders: false, reminderPhone: null };
+const DEFAULT_REMINDERS: ReminderSettings = { reminderDays: [1] };
 
 type PlanResponse = { plan: CurrentPlan; availablePlans: AvailablePlan[]; entitlements?: Entitlements };
 

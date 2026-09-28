@@ -4,9 +4,10 @@ import type { TierId } from "@/lib/plans";
  * ============================================================================
  * WHAT EACH PLAN INCLUDES — the single source of truth.
  *
- * Agreed with the business on 2026-09-28 (Starter additionally gets SMS
- * reminders). Every limit is enforced on the server; the app only reads these
- * to decide what to show. Change a rule here and it changes everywhere.
+ * Agreed with the business on 2026-09-28: only features that need no outside
+ * service (no SMS/WhatsApp, no exchange-rate feed). Every limit is enforced on
+ * the server; the app only reads these to decide what to show. Change a rule
+ * here and it changes everywhere.
  * ============================================================================
  */
 
@@ -23,9 +24,6 @@ export type Entitlements = {
   insights: InsightsLevel;
   budgets: BudgetLevel;
   export: boolean;
-  smsReminders: boolean;
-  whatsappReminders: boolean;
-  currencyConversion: boolean;
 };
 
 export const ENTITLEMENTS: Record<TierId, Entitlements> = {
@@ -36,9 +34,6 @@ export const ENTITLEMENTS: Record<TierId, Entitlements> = {
     insights: "basic",
     budgets: "none",
     export: false,
-    smsReminders: false,
-    whatsappReminders: false,
-    currencyConversion: false,
   },
   starter: {
     maxActiveSubscriptions: 20,
@@ -47,9 +42,6 @@ export const ENTITLEMENTS: Record<TierId, Entitlements> = {
     insights: "breakdown",
     budgets: "overall",
     export: false,
-    smsReminders: true,
-    whatsappReminders: false,
-    currencyConversion: true,
   },
   pro: {
     maxActiveSubscriptions: null,
@@ -58,9 +50,6 @@ export const ENTITLEMENTS: Record<TierId, Entitlements> = {
     insights: "full",
     budgets: "per_category",
     export: true,
-    smsReminders: true,
-    whatsappReminders: true,
-    currencyConversion: true,
   },
 };
 
@@ -85,8 +74,6 @@ export function featureList(tier: TierId): string[] {
         ? "Monthly & yearly spending breakdown"
         : "This month's total spending",
     ...(e.budgets === "per_category" ? ["Budgets for each category"] : e.budgets === "overall" ? ["One monthly budget with alerts"] : []),
-    ...(e.smsReminders ? [e.whatsappReminders ? "SMS & WhatsApp reminders" : "SMS reminders"] : []),
-    ...(e.currencyConversion ? ["See foreign subscriptions in MWK"] : []),
     ...(e.export ? ["Export your data (CSV)"] : []),
   ];
 }

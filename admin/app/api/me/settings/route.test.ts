@@ -36,7 +36,7 @@ describe("/api/me/settings", () => {
   it("saves what the plan allows and returns the effective settings", async () => {
     const res = await put({ reminderDays: [7] });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ settings: { reminderDays: [7], smsReminders: false, whatsappReminders: false, reminderPhone: null } });
+    expect(await res.json()).toEqual({ settings: { reminderDays: [7] } });
   });
 
   it("refuses what the plan doesn't include (403 plan_limit) and saves nothing", async () => {
@@ -49,8 +49,8 @@ describe("/api/me/settings", () => {
 
   it("GET shows only what applies under the current plan", async () => {
     plans.getEffectiveUserPlan.mockResolvedValue({ plan: "free" });
-    store.getStoredSettings.mockResolvedValue({ reminderDays: [3, 7], smsReminders: true, whatsappReminders: false, reminderPhone: "0991234567" });
+    store.getStoredSettings.mockResolvedValue({ reminderDays: [3, 7] });
     const res = await route.GET(new Request("http://x"));
-    expect(await res.json()).toEqual({ settings: { reminderDays: [1], smsReminders: false, whatsappReminders: false, reminderPhone: "0991234567" } });
+    expect(await res.json()).toEqual({ settings: { reminderDays: [1] } });
   });
 });

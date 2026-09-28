@@ -33,7 +33,7 @@ jest.mock("@clerk/expo", () => ({ useAuth: () => ({ isLoaded: true, isSignedIn: 
 
 const mockPlan = {
     entitlements: FREE_ENTITLEMENTS as Entitlements,
-    reminderSettings: { reminderDays: [1], smsReminders: false, whatsappReminders: false, reminderPhone: null },
+    reminderSettings: { reminderDays: [1] },
     updateReminderSettings: jest.fn(async () => {}),
 };
 jest.mock("@/context/plan-context", () => ({
@@ -71,7 +71,7 @@ beforeEach(() => {
     mockBudgets.list = [];
     mockBudgets.save.mockClear();
     mockPlan.entitlements = FREE_ENTITLEMENTS;
-    mockPlan.reminderSettings = { reminderDays: [1], smsReminders: false, whatsappReminders: false, reminderPhone: null };
+    mockPlan.reminderSettings = { reminderDays: [1] };
     mockPlan.updateReminderSettings.mockClear();
 });
 
