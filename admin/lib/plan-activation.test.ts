@@ -59,7 +59,7 @@ describe("schema", () => {
     await fresh.query("select 1 from public.user_plans limit 0");
     // Migrations are idempotent — re-running on an up-to-date DB is harmless.
     for (const file of migrationFiles()) await db.exec(readSql(file));
-  });
+  }, 30_000); // boots a second in-process Postgres — slow under parallel load
 
   it("rejects invalid plan values", async () => {
     await expect(

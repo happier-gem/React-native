@@ -47,7 +47,7 @@ describe("verify.sql", () => {
     const fresh = await createTestDb({ withMigrations: false });
     const { rows } = await fresh.query<{ check_name: string; ok: boolean }>(readSql("verify.sql"));
     expect(rows.filter((r) => !r.ok)).toEqual([]);
-  });
+  }, 30_000); // boots a second in-process Postgres — slow under parallel load
 
   it("actually detects problems", async () => {
     await db.exec("drop trigger payments_enforce_transition on public.payments; grant select on public.payments to anon;");
