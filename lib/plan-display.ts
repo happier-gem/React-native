@@ -15,15 +15,6 @@ const TIER_RANK: Record<TierId, number> = { free: 0, starter: 1, pro: 2 };
  * (docs/payments.md#business-decisions). */
 export const RENEWAL_WINDOW_DAYS = 7;
 
-/** Per-plan feature bullets. The business hasn't defined feature limits yet,
- * so nothing is listed — add bullets here once they're decided and the Plans
- * screen renders them. Don't list features the app doesn't actually gate. */
-export const PLAN_FEATURES: Record<TierId, string[]> = {
-    free: [],
-    starter: [],
-    pro: [],
-};
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const formatLongDate = (iso: string) =>
