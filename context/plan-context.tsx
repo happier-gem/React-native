@@ -33,9 +33,48 @@ export type AvailablePlan = {
     price: number;
     currency: string;
     interval: "monthly" | null;
+    /** Plain-language list of what the plan includes (from the server). */
+    features?: string[];
 };
 
-type PlanResponse = { plan: CurrentPlan; availablePlans: AvailablePlan[] };
+/** What the user's current plan includes — mirrors admin/lib/entitlements.ts.
+ * Used only to decide what to show; the server enforces every rule. */
+export type Entitlements = {
+    maxActiveSubscriptions: number | null;
+    reminderDayOptions: number[];
+    maxRemindersPerSubscription: number;
+    insights: "basic" | "breakdown" | "full";
+    budgets: "none" | "overall" | "per_category";
+    export: boolean;
+    smsReminders: boolean;
+    whatsappReminders: boolean;
+    currencyConversion: boolean;
+};
+
+/** Until the server answers, assume the most limited plan — never show more
+ * than the user has. */
+export const FREE_ENTITLEMENTS: Entitlements = {
+    maxActiveSubscriptions: 5,
+    reminderDayOptions: [1],
+    maxRemindersPerSubscription: 1,
+    insights: "basic",
+    budgets: "none",
+    export: false,
+    smsReminders: false,
+    whatsappReminders: false,
+    currencyConversion: false,
+};
+
+export type ReminderSettings = {
+    reminderDays: number[];
+    smsReminders: boolean;
+    whatsappReminders: boolean;
+    reminderPhone: string | null;
+};
+
+const DEFAULT_REMINDERS: ReminderSettings = { reminderDays: [1], smsReminders: false, whatsappReminders: false, reminderPhone: null };
+
+type PlanResponse = { plan: CurrentPlan; availablePlans: AvailablePlan[]; entitlements?: Entitlements };
 
 type PlanContextValue = {
     /** Null until the first successful load (or while signed out). */
@@ -46,6 +85,12 @@ type PlanContextValue = {
     /** Re-fetches from the server and resolves with the server's plan (null
      * if the request failed — see `error`). */
     refresh: () => Promise<CurrentPlan | null>;
+    entitlements: Entitlements;
+    /** Reminder settings as they apply under the current plan (server's view). */
+    reminderSettings: ReminderSettings;
+    /** Saves a change; the server refuses anything the plan doesn't include
+     * (throws ApiError with code "plan_limit"). */
+    updateReminderSettings: (changes: Partial<ReminderSettings>) => Promise<void>;
 };
 
 const PlanContext = createContext<PlanContextValue | undefined>(undefined);
@@ -56,6 +101,8 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     const [availablePlans, setAvailablePlans] = useState<AvailablePlan[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [entitlements, setEntitlements] = useState<Entitlements>(FREE_ENTITLEMENTS);
+    const [reminderSettings, setReminderSettings] = useState<ReminderSettings>(DEFAULT_REMINDERS);
 
     // getToken's identity isn't guaranteed stable across renders; reading it
     // through a ref keeps the client — and therefore refresh() — stable, so
@@ -79,7 +126,15 @@ export function PlanProvider({ children }: { children: ReactNode }) {
             if (seq === requestSeq.current) {
                 setCurrentPlan(data.plan);
                 setAvailablePlans(data.availablePlans);
+                setEntitlements(data.entitlements ?? FREE_ENTITLEMENTS);
             }
+            // Settings follow the plan (e.g. trimmed after a downgrade) —
+            // best-effort, the defaults stand if it fails.
+            api.get<{ settings: ReminderSettings }>("/api/me/settings")
+                .then(({ settings }) => {
+                    if (seq === requestSeq.current) setReminderSettings(settings);
+                })
+                .catch(() => {});
             return data.plan;
         } catch (e) {
             if (seq === requestSeq.current) {
@@ -98,6 +153,8 @@ export function PlanProvider({ children }: { children: ReactNode }) {
             requestSeq.current++;
             setCurrentPlan(null);
             setAvailablePlans([]);
+            setEntitlements(FREE_ENTITLEMENTS);
+            setReminderSettings(DEFAULT_REMINDERS);
             setLoading(false);
             setError(null);
             return;
@@ -116,8 +173,18 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         return () => subscription.remove();
     }, [isSignedIn, refresh]);
 
+    const updateReminderSettings = useCallback(
+        async (changes: Partial<ReminderSettings>) => {
+            const { settings } = await api.put<{ settings: ReminderSettings }>("/api/me/settings", changes);
+            setReminderSettings(settings);
+        },
+        [api]
+    );
+
     return (
-        <PlanContext.Provider value={{ currentPlan, availablePlans, loading, error, refresh }}>
+        <PlanContext.Provider
+            value={{ currentPlan, availablePlans, loading, error, refresh, entitlements, reminderSettings, updateReminderSettings }}
+        >
             {children}
         </PlanContext.Provider>
     );
