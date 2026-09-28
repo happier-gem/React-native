@@ -161,13 +161,11 @@ function ConfirmStep({
                             accessibilityLabel={p.name}
                             accessibilityState={{ selected }}
                             // Always in the network's own brand color; the selected one
-                            // gets a checkmark and a bold outline (not color alone).
+                            // shows a checkmark, the other is dimmed (not color alone).
                             style={{
                                 flex: 1,
                                 backgroundColor: p.brandColor,
-                                borderWidth: 3,
-                                borderColor: selected ? colors.foreground : p.brandColor,
-                                opacity: selected ? 1 : 0.85,
+                                opacity: selected ? 1 : 0.55,
                             }}
                             className="rounded-2xl p-3 flex-row items-center justify-center"
                         >
