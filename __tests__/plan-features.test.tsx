@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import Insights from "@/app/(tabs)/insights";
@@ -8,18 +9,18 @@ import { FREE_ENTITLEMENTS, type Entitlements } from "@/context/plan-context";
 // Plan-dependent screens, driven by the entitlements the server sends.
 
 jest.mock("expo-router", () => {
-    const { useEffect } = jest.requireActual("react");
+    const { useEffect } = jest.requireActual<typeof import("react")>("react");
     return { router: { push: jest.fn() }, useFocusEffect: (effect: () => void) => useEffect(effect, [effect]) };
 });
 jest.mock("react-native-keyboard-aware-scroll-view", () => {
-    const { ScrollView: MockScrollView } = jest.requireActual("react-native");
+    const { ScrollView: MockScrollView } = jest.requireActual<typeof import("react-native")>("react-native");
     return { KeyboardAwareScrollView: ({ children }: { children: React.ReactNode }) => <MockScrollView>{children}</MockScrollView> };
 });
 jest.mock("@/lib/notifications", () => ({ notifyBudget: jest.fn() }));
 jest.mock("@/context/notifications-context", () => ({ useNotificationsSettings: () => ({ enabled: false }) }));
 const mockBudgets = { list: [] as object[], save: jest.fn(async () => {}), refresh: jest.fn(async () => {}) };
 jest.mock("@/hooks/use-budgets", () => ({
-    ...jest.requireActual("@/hooks/use-budgets"),
+    ...jest.requireActual<typeof import("@/hooks/use-budgets")>("@/hooks/use-budgets"),
     useBudgets: () => ({
         budgets: mockBudgets.list,
         loading: false,
@@ -37,7 +38,7 @@ const mockPlan = {
     updateReminderSettings: jest.fn(async () => {}),
 };
 jest.mock("@/context/plan-context", () => ({
-    ...jest.requireActual("@/context/plan-context"),
+    ...jest.requireActual<typeof import("@/context/plan-context")>("@/context/plan-context"),
     usePlan: () => mockPlan,
 }));
 

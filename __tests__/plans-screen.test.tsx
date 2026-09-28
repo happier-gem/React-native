@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
@@ -14,16 +15,16 @@ jest.mock("@clerk/expo", () => ({
 }));
 
 jest.mock("expo-router", () => {
-    const { useEffect } = jest.requireActual("react");
+    const { useEffect } = jest.requireActual<typeof import("react")>("react");
     return {
         router: { back: jest.fn(), replace: jest.fn(), push: jest.fn(), canGoBack: () => true },
         useFocusEffect: (effect: () => void) => useEffect(effect, [effect]),
     };
 });
-const mockRouter = jest.requireMock("expo-router").router as { back: jest.Mock };
+const mockRouter = jest.requireMock<{ router: { back: ReturnType<typeof jest.fn> } }>("expo-router").router;
 
 jest.mock("react-native-keyboard-aware-scroll-view", () => {
-    const { ScrollView: MockScrollView } = jest.requireActual("react-native");
+    const { ScrollView: MockScrollView } = jest.requireActual<typeof import("react-native")>("react-native");
     return {
         KeyboardAwareScrollView: ({ children }: { children: React.ReactNode }) => <MockScrollView>{children}</MockScrollView>,
     };
@@ -101,7 +102,9 @@ beforeEach(async () => {
     jest.useFakeTimers();
     mockRouter.back.mockClear();
 });
-afterEach(() => jest.useRealTimers());
+afterEach(() => {
+    jest.useRealTimers();
+});
 
 describe("Plans screen", () => {
     it("Free user upgrades to Pro: pending -> success -> server plan refreshed and shown", async () => {
