@@ -221,11 +221,20 @@ Built from INFI-PAY's API documentation (base URL `https://api.infi-pay.com/api/
 | `GET /payments/transaction-status/:reference` | Implemented |
 | Statuses pending/processing/success/failed/expired/cancelled/refunded | Implemented (expired → FAILED; refunded → flagged, never applied) |
 | Phone prefixes (Airtel 099/098, Mpamba 088/089) | Implemented, server and app |
-| Idempotent `reference` | Relied on: our payment id is the reference; uncertain initiations are resent with it |
+| References (verified live 2026-09-28 — differs from the docs) | INFI-PAY assigns its **own** reference (`COL…`) and returns ours as `clientReference`; `transaction-status` finds a payment by its reference or `transactionId`, **not** by ours. We store its reference in `provider_reference` and never resend a payment. |
 | Webhook X-Signature + payload + retry | Implemented; payload used only as a trigger |
 | SUCCESS amount/currency must match our record | Implemented (mismatch → flagged, not applied) |
 | Sandbox / credentials | **Not available** — nothing has been sent to INFI-PAY |
 | Real payment tested end to end | **No** |
+
+### Observed live behavior (2026-09-28, test key)
+
+- `POST /payments/collections` reply: `data.reference` = INFI-PAY's `COL…` reference,
+  `data.clientReference` = ours, plus `transactionId`, `status: "pending"`, `correlationId`.
+- `transaction-status` status values are upper-case (`PROCESSING`); the lookup works with
+  INFI-PAY's reference or `transactionId`; our reference returns 404 "Transaction not found".
+- The docs' idempotency promise could not be relied on (our reference isn't indexed),
+  so a payment is never resent — a second USSD prompt could double-charge.
 
 ### Questions for INFI-PAY (not answered by the docs)
 

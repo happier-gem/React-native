@@ -96,11 +96,15 @@ describe("POST /api/payments/initiate pricing", () => {
 });
 
 describe("POST /api/payments/initiate — INFI-PAY contract", () => {
-  it("sends the payment's own id as the (globally unique) reference, stored before contacting INFI-PAY", async () => {
-    await initiate(VALID);
+  it("sends our payment id, then stores INFI-PAY's OWN reference from the reply", async () => {
+    provider.initiateCollection.mockResolvedValue({ kind: "accepted", providerReference: "COLMUKY123", providerTransactionId: "tx-1" });
+    const res = await initiate(VALID);
+    expect(res.status).toBe(201);
     // internal_reference is the per-user idempotency key — never sent to INFI-PAY.
     expect(db.state.inserts[0]).toMatchObject({ internal_reference: "key-1" });
-    expect(db.state.updates[0]).toEqual({ provider_reference: "pay-1" });
+    // Nothing is stored before INFI-PAY answers; then its reference is.
+    expect(db.state.updates[0]).toEqual({ provider_reference: "COLMUKY123" });
+    expect(db.state.updates).toContainEqual({ metadata: { provider_ids: expect.objectContaining({ providerTransactionId: "tx-1" }) } });
     expect(provider.initiateCollection).toHaveBeenCalledWith({
       amount: 500,
       currency: "MWK",

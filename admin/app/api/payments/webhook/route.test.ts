@@ -50,8 +50,14 @@ const ENV = {
 
 const PENDING_PAYMENT = { id: "pay-1", status: "PENDING", provider_reference: "pay-1" };
 
+// INFI-PAY's API (transaction-status lookups by transactionId) is simulated —
+// tests never touch the network. Default: unreachable.
+const fetchMock = vi.fn();
+
 beforeEach(() => {
   Object.assign(process.env, ENV);
+  fetchMock.mockReset().mockRejectedValue(new TypeError("fetch failed"));
+  vi.stubGlobal("fetch", fetchMock);
   pending.tasks.length = 0;
   payments.getPaymentByProviderReference.mockReset().mockResolvedValue(PENDING_PAYMENT);
   payments.listRecentPendingPayments.mockReset().mockResolvedValue([PENDING_PAYMENT]);
@@ -63,6 +69,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   for (const key of Object.keys(ENV)) delete process.env[key];
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -133,7 +140,20 @@ describe("POST /api/payments/webhook — response", () => {
 });
 
 describe("background processing — the webhook's status is never trusted on its own", () => {
-  it("documented payload (no reference): re-checks recent pending payments with INFI-PAY", async () => {
+  it("transactionId is looked up with INFI-PAY to find its reference, then matched to exactly one payment", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ success: true, data: { reference: "COLABC", type: "collection", status: "PROCESSING", amount: 50, currency: "MWK" } }))
+    );
+    payments.getPaymentByProviderReference.mockResolvedValue({ ...PENDING_PAYMENT, provider_reference: "COLABC" });
+    await deliver(payload("payment.success"));
+    await runBackground();
+    expect(fetchMock.mock.calls[0][0]).toBe("https://api.infi-pay.com/api/v1/payments/transaction-status/b6b6c6d0");
+    expect(payments.getPaymentByProviderReference).toHaveBeenCalledWith("COLABC");
+    expect(recoverPendingPayments).toHaveBeenCalledWith(expect.objectContaining({ limit: 1 }));
+    expect(payments.listRecentPendingPayments).not.toHaveBeenCalled();
+  });
+
+  it("if INFI-PAY can't be reached for the lookup: re-checks recent pending payments instead", async () => {
     await deliver(payload("payment.success"));
     await runBackground();
     expect(recoverPendingPayments).toHaveBeenCalledWith(expect.objectContaining({ minAgeMinutes: 0, limit: 25 }));
