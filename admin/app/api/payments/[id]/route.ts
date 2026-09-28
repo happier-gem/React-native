@@ -1,6 +1,7 @@
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { getPaymentForUser, type PaymentRecord } from "@/lib/payments";
 import { recoverPendingPayments } from "@/lib/payment-recovery";
+import { friendlyFailureReason } from "@/lib/payment-failure";
 
 /** Don't ask INFI-PAY about the same payment more often than this, however
  * often the app polls (it polls every 3 s). */
@@ -58,5 +59,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     plan: payment.plan,
     amount: payment.amount,
     currency: payment.currency,
+    // Why it didn't go through, in plain words (never the raw provider text).
+    failureReason:
+      payment.status === "FAILED" || payment.status === "CANCELLED" ? friendlyFailureReason(payment.failure_reason) : null,
   });
 }

@@ -49,7 +49,7 @@ describe("GET /api/payments/[id]", () => {
   it("the owner sees only safe fields — no phone, reference or metadata", async () => {
     auth.result = { ok: true, userId: "user_a" };
     const res = await get("pay-1");
-    expect(await res.json()).toEqual({ id: "pay-1", status: "PENDING", plan: "pro", amount: 5000, currency: "MWK" });
+    expect(await res.json()).toEqual({ id: "pay-1", status: "PENDING", plan: "pro", amount: 5000, currency: "MWK", failureReason: null });
   });
 
   it("a database error is a 500, not a misleading 404", async () => {

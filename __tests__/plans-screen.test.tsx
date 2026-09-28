@@ -66,7 +66,8 @@ function fakeServer(opts: { plan: CurrentPlan; paymentStatuses: string[]; planAf
         if (path === "/api/payments/pay-1") {
             const status = statuses.length > 1 ? statuses.shift()! : statuses[0];
             if (status === "SUCCESS" && opts.planAfterSuccess) plan = opts.planAfterSuccess;
-            return respond(200, { id: "pay-1", status, plan: "pro", amount: 5000, currency: "MWK" });
+            const failureReason = status === "FAILED" ? "There wasn't enough money in the mobile money account." : null;
+            return respond(200, { id: "pay-1", status, plan: "pro", amount: 5000, currency: "MWK", failureReason });
         }
         return respond(404, { error: "Not found" });
     }) as unknown as typeof fetch;
@@ -138,7 +139,9 @@ describe("Plans screen", () => {
         await choosePlanAndPay("Upgrade to Pro");
         await tick(6_000);
         expect(await screen.findByText("Payment failed")).toBeOnTheScreen();
-        expect(screen.getByText("Your plan has not been changed.")).toBeOnTheScreen();
+        // The reason, in the server's plain words, and reassurance.
+        expect(screen.getByText("There wasn't enough money in the mobile money account.")).toBeOnTheScreen();
+        expect(screen.getByText("No money was taken and your plan has not been changed.")).toBeOnTheScreen();
         expect(screen.getByTestId("current-plan-name")).toHaveTextContent("Starter");
         expect(screen.getByRole("button", { name: "Try again" })).toBeOnTheScreen();
     });
