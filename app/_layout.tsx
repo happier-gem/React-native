@@ -50,12 +50,13 @@ export default function RootLayout() {
           <CurrencyProvider>
             <NotificationsProvider>
               <NotificationReadProvider>
-                <SubscriptionsProvider>
-                  <PlanProvider>
+                {/* Plan wraps subscriptions: reminders follow the plan's settings. */}
+                <PlanProvider>
+                  <SubscriptionsProvider>
                     <AppStatusBar />
                     <Stack screenOptions={{ headerShown: false }} />
-                  </PlanProvider>
-                </SubscriptionsProvider>
+                  </SubscriptionsProvider>
+                </PlanProvider>
               </NotificationReadProvider>
             </NotificationsProvider>
           </CurrencyProvider>

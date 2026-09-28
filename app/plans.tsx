@@ -10,7 +10,6 @@ import { CheckoutSheet, type CheckoutSelection } from "@/components/plans/checko
 import {
     describeCurrentPlan,
     formatPlanPrice,
-    PLAN_FEATURES,
     planActionFor,
     purchasablePlans,
     purchaseExplanation,
@@ -54,7 +53,8 @@ function PlanCard({
     const { colors, accent } = useAppTheme();
     const action = planActionFor(plan.id, current, availablePlans, new Date());
     const isCurrent = current.plan === plan.id;
-    const features = PLAN_FEATURES[plan.id];
+    // Sent by the server (admin/lib/entitlements.ts) — one source of truth.
+    const features = plan.features ?? [];
     const purchasable = action.kind === "upgrade" || action.kind === "downgrade" || action.kind === "renew";
 
     return (
