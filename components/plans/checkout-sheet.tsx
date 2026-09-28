@@ -160,25 +160,24 @@ function ConfirmStep({
                             accessibilityRole="radio"
                             accessibilityLabel={p.name}
                             accessibilityState={{ selected }}
+                            // Always in the network's own brand color; the selected one
+                            // gets a checkmark and a bold outline (not color alone).
                             style={{
                                 flex: 1,
-                                borderWidth: 2,
-                                borderColor: p.brandColor,
-                                backgroundColor: selected ? p.brandColor : colors.card,
+                                backgroundColor: p.brandColor,
+                                borderWidth: 3,
+                                borderColor: selected ? colors.foreground : p.brandColor,
+                                opacity: selected ? 1 : 0.85,
                             }}
                             className="rounded-2xl p-3 flex-row items-center justify-center"
                         >
                             <Ionicons
-                                name={selected ? "radio-button-on" : "radio-button-off"}
+                                name={selected ? "checkmark-circle" : "ellipse-outline"}
                                 size={18}
-                                color={selected ? "#ffffff" : p.brandColor}
+                                color="#ffffff"
                                 style={{ marginRight: 6 }}
                             />
-                            {selected ? (
-                                <Text className="font-bold text-white">{p.name}</Text>
-                            ) : (
-                                <ThemedText className="font-semibold">{p.name}</ThemedText>
-                            )}
+                            <Text className="font-bold text-white">{p.name}</Text>
                         </Pressable>
                     );
                 })}
