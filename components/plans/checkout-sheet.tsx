@@ -278,8 +278,15 @@ export function CheckoutSheet({ visible, selection, state, availablePlans, onSta
                         color={colors.destructive}
                         title={state.phase === "failed" ? "Payment failed" : "Payment cancelled"}
                     />
+                    {state.payment.failureReason ? (
+                        <ThemedText className="text-base font-semibold text-center mb-2" testID="failure-reason">
+                            {state.payment.failureReason}
+                        </ThemedText>
+                    ) : null}
                     <Body>
-                        {state.phase === "failed" ? "Your plan has not been changed." : "No changes were made to your plan."}
+                        {state.phase === "failed"
+                            ? "No money was taken and your plan has not been changed."
+                            : "No changes were made to your plan."}
                     </Body>
                     <Button testID="checkout-retry" label="Try again" onPress={onRetry} />
                     <Button label="Close" variant="secondary" onPress={onClose} />

@@ -34,7 +34,16 @@ export function checkPhoneForNetwork(phone: string, network: PaymentProvider): s
 }
 
 /** Shape returned by both payment routes. */
-export type ClientPayment = { id: string; status: PaymentStatus; plan: PaidTierId; amount: number; currency: string };
+export type ClientPayment = {
+    id: string;
+    status: PaymentStatus;
+    plan: PaidTierId;
+    amount: number;
+    currency: string;
+    /** Why a FAILED/CANCELLED payment didn't go through, already phrased for
+     * users by the server (e.g. "The PIN entered was incorrect."). */
+    failureReason?: string | null;
+};
 
 export type InitiateInput = { plan: PaidTierId; provider: PaymentProvider; phoneNumber: string };
 
