@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 
   after(async () => {
     try {
-      await processVerifiedPaymentEvent(parsed.reference);
+      await processVerifiedPaymentEvent(parsed.reference, parsed.providerTransactionId);
     } catch (e) {
       paymentLog("error", "webhook.processing_failed", { source: "webhook", reason: e instanceof Error ? e.message : "unknown" });
     }
@@ -62,8 +62,20 @@ export async function POST(request: Request) {
   return Response.json({ ok: true, accepted: true });
 }
 
-/** Re-checks with INFI-PAY and settles. Exported for tests. */
-export async function processVerifiedPaymentEvent(reference: string | null) {
+/**
+ * Re-checks with INFI-PAY and settles. Exported for tests.
+ *
+ * Matching: we store INFI-PAY's own reference (e.g. "COLMUKY…") in
+ * payments.provider_reference. If the event carries it, it matches directly;
+ * otherwise the event's transactionId is looked up with INFI-PAY (which accepts
+ * either id) to get that reference. Only if neither works do we fall back to
+ * re-checking recent pending payments.
+ */
+export async function processVerifiedPaymentEvent(reference: string | null, transactionId: string | null = null) {
+  if (!reference && transactionId) {
+    const lookup = await getPaymentProvider().getTransactionStatus(transactionId);
+    if (lookup.kind === "status" && lookup.providerReference) reference = lookup.providerReference;
+  }
   if (reference) {
     const payment = await getPaymentByProviderReference(reference);
     if (payment?.status === "PENDING") {

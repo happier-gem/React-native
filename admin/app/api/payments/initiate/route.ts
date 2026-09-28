@@ -10,6 +10,7 @@ import {
   findReusablePendingPayment,
   markFailed,
   markInitiationUncertain,
+  recordProviderIds,
   type PaymentRecord,
 } from "@/lib/payments";
 
@@ -28,36 +29,45 @@ const MSG_SERVER = "Something went wrong on our end. Please try again.";
 /**
  * Sends the collection request for a PENDING payment and records the outcome.
  * The reference is the payment's own id — globally unique, unlike
- * internal_reference (a per-user idempotency key). Called once per payment —
+ * internal_reference (a per-user idempotency key). INFI-PAY assigns its own
+ * reference in the reply, which is what gets stored. Called once per payment —
  * never again for the same payment (see the note in POST below).
  */
 async function sendCollection(provider: PaymentProvider, payment: PaymentRecord) {
-  const reference = payment.provider_reference ?? payment.id;
-  // Stored BEFORE contacting the provider, so every payment that might exist at
-  // INFI-PAY can be looked up there by recovery.
-  if (!payment.provider_reference && !(await attachProviderReference(payment.id, reference))) {
-    await markFailed(payment.id, "initiation_aborted:reference_not_stored"); // nothing was sent
-    return json({ error: MSG_SERVER }, 500);
-  }
-
   const result = await provider.initiateCollection({
     amount: Number(payment.amount),
     currency: payment.currency,
     phoneNumber: payment.phone_number,
     network: payment.provider,
-    reference,
+    reference: payment.id, // ours — INFI-PAY returns it as clientReference
   });
 
   switch (result.kind) {
-    case "accepted":
+    case "accepted": {
+      // INFI-PAY's own reference is what every later status lookup uses.
+      const stored = await attachProviderReference(payment.id, result.providerReference);
+      await recordProviderIds(payment.id, {
+        providerTransactionId: result.providerTransactionId,
+        // Kept here too if it couldn't be stored, so an operator can still find it.
+        ...(stored ? {} : { providerReference: result.providerReference }),
+      });
+      if (!stored) {
+        paymentLog("error", "initiate.reference_not_stored", {
+          source: "initiate",
+          paymentId: payment.id,
+          providerReference: result.providerReference,
+        });
+      }
       paymentLog("info", "initiate.accepted", {
         source: "initiate",
         paymentId: payment.id,
-        providerReference: reference,
+        providerReference: result.providerReference,
         userId: payment.user_id,
         plan: payment.plan,
       });
+      // The charge prompt is on its way either way — let the app wait for it.
       return json({ payment: toClientPayment(payment) }, 201);
+    }
 
     case "rejected":
       // The provider definitely didn't create a collection: safe to fail it.

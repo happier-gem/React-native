@@ -91,9 +91,27 @@ describe("phone numbers (documented prefixes)", () => {
 });
 
 describe("initiateCollection", () => {
-  it("POSTs the documented request with the x-api-key header", async () => {
-    fetchMock.mockResolvedValue(ok({ reference: PARAMS.reference, provider: "airtel", status: "pending" }));
-    expect(await infiPayProvider.initiateCollection(PARAMS)).toEqual({ kind: "accepted", providerReference: PARAMS.reference });
+  /** The reply shape observed from the live API on 2026-09-28 (values shortened). */
+  const LIVE_REPLY = {
+    reference: "COLMUKYRXPAADA484CD033C7E09E6AC",
+    clientReference: PARAMS.reference,
+    transactionId: "4ba47256-0b56-4209-9687-0875159c2d45",
+    provider: "airtel",
+    status: "pending",
+    message: "SUCCESS",
+    success: true,
+    amount: 5000,
+    currency: "MWK",
+    phoneNumber: "0991234567",
+  };
+
+  it("POSTs the documented request and stores INFI-PAY's OWN reference from the reply", async () => {
+    fetchMock.mockResolvedValue(ok(LIVE_REPLY));
+    expect(await infiPayProvider.initiateCollection(PARAMS)).toEqual({
+      kind: "accepted",
+      providerReference: "COLMUKYRXPAADA484CD033C7E09E6AC",
+      providerTransactionId: "4ba47256-0b56-4209-9687-0875159c2d45",
+    });
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("https://api.infi-pay.com/api/v1/payments/collections");
     expect(init.method).toBe("POST");
@@ -133,7 +151,8 @@ describe("initiateCollection", () => {
     ["a timeout", () => fetchMock.mockRejectedValue(Object.assign(new Error("timed out"), { name: "TimeoutError" }))],
     ["a 5xx", () => fetchMock.mockResolvedValue(fail(503, "ServiceUnavailable"))],
     ["a 408", () => fetchMock.mockResolvedValue(fail(408, "RequestTimeout"))],
-    ["a 2xx that doesn't echo our reference", () => fetchMock.mockResolvedValue(ok({ reference: "someone-else" }))],
+    ["a 2xx whose clientReference isn't ours", () => fetchMock.mockResolvedValue(ok({ ...LIVE_REPLY, clientReference: "someone-else" }))],
+    ["a 2xx without INFI-PAY's reference", () => fetchMock.mockResolvedValue(ok({ clientReference: PARAMS.reference }))],
     ["a 2xx that isn't JSON", () => fetchMock.mockResolvedValue(respond(200, "<html>"))],
   ])("%s is uncertain — the collection may exist", async (_label, arrange) => {
     arrange();
@@ -147,7 +166,7 @@ describe("initiateCollection", () => {
     const result = await infiPayProvider.initiateCollection(PARAMS);
     expect(result).toMatchObject({
       kind: "uncertain",
-      reason: "reference_not_echoed",
+      reason: "missing_provider_reference",
       diagnostics: {
         httpStatus: 200,
         shape: {
@@ -195,6 +214,7 @@ describe("getTransactionStatus", () => {
       kind: "status",
       status: expected,
       failureReason: reason,
+      providerReference: PARAMS.reference,
       amount: 5000,
       currency: "MWK",
     });

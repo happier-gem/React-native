@@ -279,13 +279,20 @@ export const infiPayProvider: PaymentProvider = {
       return { kind: "rejected", reason: `provider_http_${response.status}${body.errorCode ? `:${body.errorCode}` : ""}` };
     }
 
-    // INFI-PAY identifies the transaction by our reference and echoes it back.
-    if (body.data?.reference !== params.reference) {
+    // Verified against the live API (2026-09-28), which differs from the docs:
+    // INFI-PAY assigns its OWN reference (e.g. "COLMUKY…") in data.reference and
+    // returns ours as data.clientReference; transaction-status looks payments up
+    // by its reference or its transactionId — never by ours.
+    const data = body.data;
+    const providerReference = typeof data?.reference === "string" && data.reference.trim() ? data.reference.trim() : null;
+    const clientReference = typeof data?.clientReference === "string" ? data.clientReference : null;
+    if (!providerReference || (clientReference !== null && clientReference !== params.reference)) {
       const diagnostics = { httpStatus: response.status, shape: describeShape(raw) };
-      logError("initiate:reference-mismatch", { reference: params.reference, ...diagnostics });
-      return { kind: "uncertain", reason: "reference_not_echoed", diagnostics };
+      logError("initiate:unexpected-reply", { reference: params.reference, ...diagnostics });
+      return { kind: "uncertain", reason: providerReference ? "client_reference_mismatch" : "missing_provider_reference", diagnostics };
     }
-    return { kind: "accepted", providerReference: params.reference };
+    const transactionId = typeof data?.transactionId === "string" ? data.transactionId : undefined;
+    return { kind: "accepted", providerReference, providerTransactionId: transactionId };
   },
 
   async getTransactionStatus(reference: string): Promise<ProviderStatusResult> {
@@ -325,6 +332,7 @@ export const infiPayProvider: PaymentProvider = {
         failureReason: mapped.failureReason,
         amount: typeof data.amount === "number" ? data.amount : typeof data.amount === "string" ? Number(data.amount) : undefined,
         currency: typeof data.currency === "string" ? data.currency : undefined,
+        providerReference: typeof data.reference === "string" ? data.reference : undefined,
       };
     } catch (e) {
       logError("status:network", { reference, error: e instanceof Error ? e.name : "unknown" });
