@@ -99,6 +99,9 @@ export async function recoverPendingPayments(
     /** Override the policy's minimum age — a verified webhook uses 0 to check
      * recent payments immediately. */
     minAgeMinutes?: number;
+    /** Also retry activation for SUCCESS payments without a plan (default true).
+     * Off for single-payment checks made while the app is waiting. */
+    sweepOrphans?: boolean;
     deps?: Partial<RecoveryDeps>;
   } = {}
 ): Promise<RecoverySummary> {
@@ -221,7 +224,7 @@ export async function recoverPendingPayments(
   // 2. SUCCESS payments with no plan change recorded (activation failed, or a
   // webhook that got a 5xx was never redelivered). Activation re-verifies the
   // payment in the database and is idempotent, so this can't double-apply.
-  try {
+  if (opts.sweepOrphans !== false) try {
     const orphans = await deps.listSuccessWithoutPlan(new Date(now.getTime() - ACTIVATION_GRACE_MS), limit);
     for (const payment of orphans) {
       summary.activationsRetried++;

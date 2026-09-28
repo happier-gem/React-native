@@ -329,7 +329,12 @@ export const infiPayProvider: PaymentProvider = {
       return {
         kind: "status",
         status: mapped.status,
-        failureReason: mapped.failureReason,
+        // INFI-PAY puts the network's explanation in `message`
+        // (e.g. "Wrong PIN entered. …") — kept as the failure reason.
+        failureReason:
+          mapped.status === "FAILED" || mapped.status === "CANCELLED"
+            ? (typeof data.message === "string" && data.message.trim() ? data.message.trim().slice(0, 500) : mapped.failureReason)
+            : undefined,
         amount: typeof data.amount === "number" ? data.amount : typeof data.amount === "string" ? Number(data.amount) : undefined,
         currency: typeof data.currency === "string" ? data.currency : undefined,
         providerReference: typeof data.reference === "string" ? data.reference : undefined,
