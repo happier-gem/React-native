@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin-auth";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDateTime, formatMoney } from "@/lib/format";
 import { getPaymentProvider } from "@/lib/infi-pay";
 import { maskPhone, type PaymentOverviewRow, type PaymentStatus } from "@/lib/payments";
 import { paymentPolicy } from "@/lib/payment-recovery";
@@ -12,11 +12,6 @@ const STATUSES: (PaymentStatus | "all")[] = ["all", "PENDING", "SUCCESS", "FAILE
 const card = "rounded-2xl border border-black/10 p-4 dark:border-white/15";
 const muted = "text-black/60 dark:text-white/60";
 
-function formatDateTime(iso: string | null) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "—" : `${formatDate(d)} ${d.toISOString().slice(11, 16)} UTC`;
-}
 
 // Operator view. Read-only apart from "Run recovery now", which only asks the
 // provider for real statuses — there is deliberately no way to grant a plan or

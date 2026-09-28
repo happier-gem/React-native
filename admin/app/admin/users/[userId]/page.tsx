@@ -3,7 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { clerkClient } from "@clerk/nextjs/server";
 import { requireAdmin } from "@/lib/admin-auth";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 import { getPlan, FREE_PLAN, type TierId } from "@/lib/plans";
 import { listSuccessfulPaymentsForUser } from "@/lib/payments";
 import { getEffectiveUserPlan, listPlanEventsForUser } from "@/lib/user-plans";
@@ -93,7 +93,7 @@ async function PlanSection({ userId }: { userId: string }) {
             <tbody>
               {events.map((e) => (
                 <tr key={e.id} className="border-b border-black/5 last:border-0 dark:border-white/10">
-                  <td className="px-4 py-3">{formatDate(e.created_at)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(e.created_at)}</td>
                   <td className="px-4 py-3">{EVENT_LABELS[e.event] ?? e.event}</td>
                   <td className="px-4 py-3">
                     {tierName(e.from_plan)} → {tierName(e.to_plan)}
