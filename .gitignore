@@ -45,3 +45,6 @@ app-example
 
 # Vercel CLI link folder
 .vercel
+
+# Expo access token for EAS builds (never commit)
+.expo-token
