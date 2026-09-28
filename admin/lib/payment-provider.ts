@@ -47,7 +47,13 @@ export type ProviderInitiateResult =
   /** We can't tell whether the provider created a collection (timeout,
    * connection drop, 5xx, unreadable 2xx). The payment must stay PENDING —
    * marking it FAILED could strand a real charge. */
-  | { kind: "uncertain"; reason: string };
+  | {
+      kind: "uncertain";
+      reason: string;
+      /** Shape of an unexpected provider reply (field names and safe values
+       * only — never phone numbers or names), kept for diagnosis. */
+      diagnostics?: Record<string, unknown>;
+    };
 
 export type ProviderStatusResult =
   | {

@@ -267,8 +267,10 @@ async function mergePaymentMetadata(id: string, patch: Record<string, unknown>):
 
 /** Initiation outcome unknown (timeout/5xx): the payment stays PENDING and is
  * flagged for reconciliation instead of being marked FAILED. */
-export function markInitiationUncertain(id: string, reason: string) {
-  return mergePaymentMetadata(id, { initiation_uncertain: { at: new Date().toISOString(), reason } });
+export function markInitiationUncertain(id: string, reason: string, diagnostics?: Record<string, unknown>) {
+  return mergePaymentMetadata(id, {
+    initiation_uncertain: { at: new Date().toISOString(), reason, ...(diagnostics ? { diagnostics } : {}) },
+  });
 }
 
 /** The uncertain initiation was retried and the provider accepted it. */
