@@ -1,5 +1,6 @@
 import {
   Alert,
+  Share,
   Image,
   Linking,
   Modal,
@@ -22,6 +23,8 @@ import { useNotificationsSettings } from "@/context/notifications-context";
 import { sendTestNotifications } from "@/lib/notifications";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { usePlan } from "@/context/plan-context";
+import { createApiClient } from "@/lib/api-client";
+import { showUpgradePromptIfPlanLimit } from "@/lib/upgrade-prompt";
 import { settingsPlanSummary } from "@/lib/plan-display";
 import { ReminderSettingsModal, reminderSummary } from "@/components/settings/reminder-settings-modal";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
@@ -392,10 +395,34 @@ const Settings = () => {
   const { account } = useAccount();
   const { colors, accent } = useAppTheme();
   const { currency } = useCurrency();
-  const { signOut } = useAuth();
+  const { signOut, getToken } = useAuth();
+  const [exporting, setExporting] = useState(false);
   const { enabled: notificationsEnabled, setEnabled: setNotificationsEnabled } = useNotificationsSettings();
   const isAdmin = useIsAdmin();
-  const { currentPlan, availablePlans, reminderSettings } = usePlan();
+  const { currentPlan, availablePlans, reminderSettings, entitlements } = usePlan();
+
+  // Pro: the server builds the CSV (and refuses other plans); shared as text
+  // through the phone's share sheet (email, WhatsApp, Drive…).
+  const handleExport = async () => {
+    if (!entitlements.export) {
+      Alert.alert("Export is a Pro feature", "Upgrade to Pro to export your subscriptions as a CSV file.", [
+        { text: "Not now", style: "cancel" },
+        { text: "See plans", onPress: () => router.push("/plans") },
+      ]);
+      return;
+    }
+    setExporting(true);
+    try {
+      const csv = await createApiClient(getToken).getText("/api/me/export");
+      await Share.share({ title: "subscriptions.csv", message: csv });
+    } catch (e) {
+      if (!showUpgradePromptIfPlanLimit("Export is a Pro feature", e)) {
+        Alert.alert("Couldn't export", e instanceof Error ? e.message : "Please try again.");
+      }
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Display only — the plan, its name and its expiry all come from the server.
   const planLabel = settingsPlanSummary(currentPlan, availablePlans);
@@ -469,7 +496,22 @@ const Settings = () => {
             accessibilityRole="button"
             accessibilityLabel={`Plan: ${planLabel}. Opens plans`}
           >
-            <SettingsRow label="Plan" value={planLabel} icon="star-outline" iconBadgeColor={accent} last />
+            <SettingsRow label="Plan" value={planLabel} icon="star-outline" iconBadgeColor={accent} />
+          </Pressable>
+          <Pressable
+            onPress={handleExport}
+            disabled={exporting}
+            accessibilityRole="button"
+            accessibilityLabel={entitlements.export ? "Export data as CSV" : "Export data as CSV, Pro feature"}
+            accessibilityState={{ busy: exporting }}
+          >
+            <SettingsRow
+              label="Export data (CSV)"
+              value={exporting ? "Preparing…" : entitlements.export ? undefined : "Pro"}
+              icon="download-outline"
+              iconBadgeColor="#8b5cf6"
+              last
+            />
           </Pressable>
         </Card>
 
