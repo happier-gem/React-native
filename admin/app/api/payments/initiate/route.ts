@@ -5,11 +5,9 @@ import type { MobileMoneyNetwork, PaymentProvider } from "@/lib/payment-provider
 import { paymentLog } from "@/lib/payment-log";
 import {
   attachProviderReference,
-  clearInitiationUncertain,
   createPendingPayment,
   findByInternalReference,
   findReusablePendingPayment,
-  isInitiationUncertain,
   markFailed,
   markInitiationUncertain,
   type PaymentRecord,
@@ -30,11 +28,10 @@ const MSG_SERVER = "Something went wrong on our end. Please try again.";
 /**
  * Sends the collection request for a PENDING payment and records the outcome.
  * The reference is the payment's own id — globally unique, unlike
- * internal_reference (a per-user idempotency key), and INFI-PAY treats a
- * repeated reference as the same transaction. That is what makes calling this
- * again for an "uncertain" payment safe: it can't create a second charge.
+ * internal_reference (a per-user idempotency key). Called once per payment —
+ * never again for the same payment (see the note in POST below).
  */
-async function sendCollection(provider: PaymentProvider, payment: PaymentRecord, successStatus: 200 | 201) {
+async function sendCollection(provider: PaymentProvider, payment: PaymentRecord) {
   const reference = payment.provider_reference ?? payment.id;
   // Stored BEFORE contacting the provider, so every payment that might exist at
   // INFI-PAY can be looked up there by recovery.
@@ -53,7 +50,6 @@ async function sendCollection(provider: PaymentProvider, payment: PaymentRecord,
 
   switch (result.kind) {
     case "accepted":
-      if (isInitiationUncertain(payment)) await clearInitiationUncertain(payment.id);
       paymentLog("info", "initiate.accepted", {
         source: "initiate",
         paymentId: payment.id,
@@ -61,7 +57,7 @@ async function sendCollection(provider: PaymentProvider, payment: PaymentRecord,
         userId: payment.user_id,
         plan: payment.plan,
       });
-      return json({ payment: toClientPayment(payment) }, successStatus);
+      return json({ payment: toClientPayment(payment) }, 201);
 
     case "rejected":
       // The provider definitely didn't create a collection: safe to fail it.
@@ -70,8 +66,8 @@ async function sendCollection(provider: PaymentProvider, payment: PaymentRecord,
       return json({ error: MSG_REJECTED }, 502);
 
     case "uncertain":
-      // A charge prompt may have been sent. Keep it PENDING and flagged;
-      // recovery asks INFI-PAY by reference, and a retry resends safely.
+      // A charge prompt may have been sent. Keep it PENDING and flagged for
+      // reconciliation; it is never resent.
       await markInitiationUncertain(payment.id, result.reason, result.diagnostics);
       paymentLog("error", "initiate.uncertain", { source: "initiate", paymentId: payment.id, reason: result.reason });
       return json({ error: MSG_UNAVAILABLE }, 503);
@@ -120,12 +116,13 @@ export async function POST(request: Request) {
     return json({ error: MSG_SERVER }, 500);
   }
 
-  if (existing) {
-    // An earlier attempt timed out: resend with the same reference (safe —
-    // idempotent at INFI-PAY) instead of leaving the user stuck.
-    if (isInitiationUncertain(existing)) return sendCollection(provider, existing, 200);
-    return json({ payment: toClientPayment(existing) }, 200);
-  }
+  // An existing payment — including one whose first attempt had an uncertain
+  // outcome — is returned as-is and NEVER resent. INFI-PAY's docs say a repeated
+  // reference is idempotent, but live testing (2026-09-28) showed a collection
+  // that sent a PIN prompt while INFI-PAY had no record of our reference, so a
+  // resend could put a second charge prompt on the payer's phone. Revisit once
+  // INFI-PAY confirms how references behave (docs/payments.md).
+  if (existing) return json({ payment: toClientPayment(existing) }, 200);
 
   const created = await createPendingPayment({
     userId: auth.userId,
@@ -135,10 +132,7 @@ export async function POST(request: Request) {
     idempotencyKey: idempotencyKey || undefined,
   });
   if (!created.ok) return json({ error: created.error }, created.status);
-  if (created.reused) {
-    if (isInitiationUncertain(created.row)) return sendCollection(provider, created.row, 200);
-    return json({ payment: toClientPayment(created.row) }, 200);
-  }
+  if (created.reused) return json({ payment: toClientPayment(created.row) }, 200);
 
-  return sendCollection(provider, created.row, 201);
+  return sendCollection(provider, created.row);
 }

@@ -148,7 +148,7 @@ describe("POST /api/payments/initiate reliability", () => {
     expect(db.state.updates).toContainEqual({ metadata: { initiation_uncertain: expect.objectContaining({ reason: "network_or_timeout" }) } });
   });
 
-  it("retrying an uncertain payment resends with the SAME reference and creates nothing new", async () => {
+  it("retrying an uncertain payment NEVER resends it (a second PIN prompt could double-charge) and creates nothing new", async () => {
     db.state.existing = {
       id: "pay-1",
       user_id: "user_a",
@@ -164,8 +164,8 @@ describe("POST /api/payments/initiate reliability", () => {
     const res = await initiate(VALID);
     expect(res.status).toBe(200);
     expect(db.state.inserts).toHaveLength(0);
-    expect(provider.initiateCollection).toHaveBeenCalledWith(expect.objectContaining({ reference: "pay-1" }));
-    expect(db.state.updates).toContainEqual({ metadata: { initiation_uncertain: null } });
+    expect(provider.initiateCollection).not.toHaveBeenCalled();
+    expect((await res.json()).payment).toMatchObject({ id: "pay-1", status: "PENDING" });
   });
 
   it("an existing (not uncertain) payment is returned as-is — no second charge prompt", async () => {
