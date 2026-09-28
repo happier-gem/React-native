@@ -12,6 +12,11 @@ export const accentPresets = [
     { name: "Violet", hex: "#8b5cf6" },
     { name: "Blue", hex: "#3b82f6" },
     { name: "Rose", hex: "#f43f5e" },
+    // Mid-dark shades: the accent is used both behind white text (buttons)
+    // and as text on light and dark backgrounds, so it must read on all three.
+    { name: "Dark Blue", hex: "#1d4ed8" },
+    { name: "Green", hex: "#15803d" },
+    { name: "Gray", hex: "#6b7280" },
 ] as const;
 
 export type ThemeMode = "light" | "dark" | "system";

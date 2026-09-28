@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const CURRENCY_STORAGE_KEY = "currency:code";
 
 export const currencyOptions = [
+    { code: "MWK", symbol: "MK", name: "Malawian Kwacha" },
     { code: "USD", symbol: "$", name: "US Dollar" },
     { code: "EUR", symbol: "€", name: "Euro" },
     { code: "GBP", symbol: "£", name: "British Pound" },
