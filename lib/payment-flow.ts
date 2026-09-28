@@ -12,9 +12,10 @@ export type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED" | "CANCELLED";
 export type PaymentProvider = "airtel_money" | "tnm_mpamba";
 
 /** The providers /api/payments/initiate accepts (VALID_PROVIDERS there). */
-export const PAYMENT_PROVIDERS: { id: PaymentProvider; name: string }[] = [
-    { id: "airtel_money", name: "Airtel Money" },
-    { id: "tnm_mpamba", name: "TNM Mpamba" },
+export const PAYMENT_PROVIDERS: { id: PaymentProvider; name: string; brandColor: string }[] = [
+    // Brand colors: Airtel red, TNM Mpamba green.
+    { id: "airtel_money", name: "Airtel Money", brandColor: "#E40000" },
+    { id: "tnm_mpamba", name: "TNM Mpamba", brandColor: "#00A651" },
 ];
 
 /** Number prefixes per network, as documented by INFI-PAY (Airtel 099/098,

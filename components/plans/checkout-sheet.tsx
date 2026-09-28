@@ -122,7 +122,7 @@ function ConfirmStep({
     onStart: (input: InitiateInput) => void;
     onClose: () => void;
 }) {
-    const { colors, accent } = useAppTheme();
+    const { colors } = useAppTheme();
     const { provider, phone } = payer;
     const setProvider = (next: PaymentProvider) => onPayerChange({ ...payer, provider: next });
     const setPhone = (next: string) => onPayerChange({ ...payer, phone: next });
@@ -163,18 +163,22 @@ function ConfirmStep({
                             style={{
                                 flex: 1,
                                 borderWidth: 2,
-                                borderColor: selected ? accent : colors.border,
-                                backgroundColor: colors.card,
+                                borderColor: p.brandColor,
+                                backgroundColor: selected ? p.brandColor : colors.card,
                             }}
                             className="rounded-2xl p-3 flex-row items-center justify-center"
                         >
                             <Ionicons
                                 name={selected ? "radio-button-on" : "radio-button-off"}
                                 size={18}
-                                color={selected ? accent : colors.mutedForeground}
+                                color={selected ? "#ffffff" : p.brandColor}
                                 style={{ marginRight: 6 }}
                             />
-                            <ThemedText className="font-semibold">{p.name}</ThemedText>
+                            {selected ? (
+                                <Text className="font-bold text-white">{p.name}</Text>
+                            ) : (
+                                <ThemedText className="font-semibold">{p.name}</ThemedText>
+                            )}
                         </Pressable>
                     );
                 })}
