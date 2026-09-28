@@ -23,6 +23,7 @@ import { sendTestNotifications } from "@/lib/notifications";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { usePlan } from "@/context/plan-context";
 import { settingsPlanSummary } from "@/lib/plan-display";
+import { ReminderSettingsModal, reminderSummary } from "@/components/settings/reminder-settings-modal";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 
 const SettingsRow = ({
@@ -387,13 +388,14 @@ const Settings = () => {
   const [editAccountVisible, setEditAccountVisible] = useState(false);
   const [accentPickerVisible, setAccentPickerVisible] = useState(false);
   const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
+  const [remindersVisible, setRemindersVisible] = useState(false);
   const { account } = useAccount();
   const { colors, accent } = useAppTheme();
   const { currency } = useCurrency();
   const { signOut } = useAuth();
   const { enabled: notificationsEnabled, setEnabled: setNotificationsEnabled } = useNotificationsSettings();
   const isAdmin = useIsAdmin();
-  const { currentPlan, availablePlans } = usePlan();
+  const { currentPlan, availablePlans, reminderSettings } = usePlan();
 
   // Display only — the plan, its name and its expiry all come from the server.
   const planLabel = settingsPlanSummary(currentPlan, availablePlans);
@@ -495,6 +497,14 @@ const Settings = () => {
               thumbColor="#ffffff"
             />
           </View>
+          <Pressable onPress={() => setRemindersVisible(true)}>
+            <SettingsRow
+              label="Renewal reminders"
+              value={reminderSummary(reminderSettings.reminderDays)}
+              icon="alarm-outline"
+              iconBadgeColor="#f59e0b"
+            />
+          </Pressable>
           <Pressable onPress={handleSendTestNotification}>
             <SettingsRow label="Send test notification" icon="paper-plane-outline" iconBadgeColor="#3b82f6" />
           </Pressable>
@@ -559,6 +569,7 @@ const Settings = () => {
         visible={currencyPickerVisible}
         onClose={() => setCurrencyPickerVisible(false)}
       />
+      <ReminderSettingsModal visible={remindersVisible} onClose={() => setRemindersVisible(false)} />
     </ThemedSafeAreaView>
   );
 };

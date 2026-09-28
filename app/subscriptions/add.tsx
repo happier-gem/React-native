@@ -9,6 +9,7 @@ import { BrandIcon } from "@/components/brand-icon";
 import { useAppTheme } from "@/context/theme-context";
 import { currencyOptions, useCurrency } from "@/context/currency-context";
 import { useSubscriptions } from "@/context/subscriptions-context";
+import { showUpgradePromptIfPlanLimit } from "@/lib/upgrade-prompt";
 
 const errorMessage = (e: unknown) => (e instanceof Error ? e.message : "Something went wrong.");
 
@@ -88,7 +89,9 @@ const AddSubscription = () => {
       });
       router.back();
     } catch (e) {
-      Alert.alert("Couldn't add subscription", errorMessage(e));
+      if (!showUpgradePromptIfPlanLimit("Subscription limit reached", e)) {
+        Alert.alert("Couldn't add subscription", errorMessage(e));
+      }
     } finally {
       setSaving(false);
     }

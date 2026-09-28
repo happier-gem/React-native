@@ -14,6 +14,7 @@ import {
   SubscriptionEdits,
   useSubscriptions,
 } from "@/context/subscriptions-context";
+import { showUpgradePromptIfPlanLimit } from "@/lib/upgrade-prompt";
 
 const BackLink = () => (
   <Link href="/subscriptions" asChild>
@@ -311,7 +312,9 @@ const SubscriptionDetails = () => {
             try {
               await renewSubscription(subscription.id);
             } catch (e) {
-              Alert.alert("Couldn't renew", errorMessage(e));
+              if (!showUpgradePromptIfPlanLimit("Subscription limit reached", e)) {
+                Alert.alert("Couldn't renew", errorMessage(e));
+              }
             } finally {
               setBusy(false);
             }
