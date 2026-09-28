@@ -1,6 +1,7 @@
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { listAvailablePlans } from "@/lib/plans";
 import { syncUserPlan } from "@/lib/user-plans";
+import { entitlementsFor, featureList } from "@/lib/entitlements";
 
 // The only plan endpoint a mobile client can call, and it's read-only. The
 // user is always the verified token's subject — no user id is read from the
@@ -38,6 +39,9 @@ export async function GET(request: Request) {
           ? { plan: effective.storedPlan.plan, endedAt: effective.storedPlan.expiresAt.toISOString() }
           : null,
     },
-    availablePlans: listAvailablePlans(),
+    // What the user's current plan includes (lib/entitlements.ts) — the app
+    // uses it to show/lock features; the server enforces the same rules.
+    entitlements: entitlementsFor(effective.plan),
+    availablePlans: listAvailablePlans().map((p) => ({ ...p, features: featureList(p.id) })),
   });
 }
