@@ -56,7 +56,7 @@ describe("GET /api/me/plan", () => {
     ]);
     expect(body.availablePlans[2].features).toContain("Unlimited subscriptions");
     // The current plan's rules, so the app can show/lock features.
-    expect(body.entitlements).toEqual({ maxActiveSubscriptions: null });
+    expect(body.entitlements).toMatchObject({ maxActiveSubscriptions: null, smsReminders: true, whatsappReminders: true });
   });
 
   it("reports the paid plan that ended when the user is back on FREE", async () => {

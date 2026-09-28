@@ -393,3 +393,58 @@ alter table public.admin_audit_log enable row level security;
 alter table public.payments enable row level security;
 alter table public.user_plans enable row level security;
 alter table public.user_plan_events enable row level security;
+
+-- ---------------------------------------------------------------------------
+-- Per-user settings (plan features). Identical to
+-- migrations/20260928000000_user_settings.sql.
+-- ---------------------------------------------------------------------------
+create table if not exists public.user_settings (
+  user_id             text primary key,                         -- Clerk user id
+  -- Days before a renewal to remind; any of 1, 3, 7; at most 3 of them.
+  reminder_days       integer[] not null default '{1}',
+  -- Stage 3 (SMS/WhatsApp reminders) — stored now so no second migration is needed.
+  sms_reminders       boolean not null default false,
+  whatsapp_reminders  boolean not null default false,
+  reminder_phone      text,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  constraint user_settings_reminder_days_check
+    check (reminder_days <@ array[1, 3, 7] and cardinality(reminder_days) between 1 and 3),
+  constraint user_settings_reminder_phone_check
+    check (reminder_phone is null or reminder_phone ~ '^0[0-9]{9}$')
+);
+
+drop trigger if exists user_settings_set_updated_at on public.user_settings;
+create trigger user_settings_set_updated_at
+  before update on public.user_settings
+  for each row execute function public.set_updated_at();
+
+alter table public.user_settings enable row level security;
+revoke all on table public.user_settings from anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Monthly budgets (plan features). Identical to
+-- migrations/20260929000000_budgets.sql.
+-- ---------------------------------------------------------------------------
+create table if not exists public.budgets (
+  id             uuid primary key default gen_random_uuid(),
+  user_id        text not null,                              -- Clerk user id
+  category       text,                                       -- null = overall budget
+  monthly_limit  numeric(12, 2) not null check (monthly_limit > 0),
+  currency       text not null default 'MWK',
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  constraint budgets_category_check check (category is null or length(btrim(category)) between 1 and 60)
+);
+
+-- One overall budget and one per category (case-insensitive) per user.
+create unique index if not exists budgets_user_category_unique_idx
+  on public.budgets (user_id, lower(coalesce(category, '')));
+
+drop trigger if exists budgets_set_updated_at on public.budgets;
+create trigger budgets_set_updated_at
+  before update on public.budgets
+  for each row execute function public.set_updated_at();
+
+alter table public.budgets enable row level security;
+revoke all on table public.budgets from anon, authenticated;

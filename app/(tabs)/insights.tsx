@@ -1,5 +1,8 @@
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
-import React from "react";
+import React, { useMemo } from "react";
+import { usePlan } from "@/context/plan-context";
+import { LockedCard } from "@/components/insights/locked-card";
+import { BudgetsSection } from "@/components/insights/budgets-section";
 import { useAppTheme } from "@/context/theme-context";
 import { formatMoney } from "@/constants/data";
 import { monthlyEquivalent, useSubscriptions } from "@/context/subscriptions-context";
@@ -9,6 +12,23 @@ import { BrandIcon } from "@/components/brand-icon";
 const Insights = () => {
   const { colors, accent } = useAppTheme();
   const { activeSubscriptions, spendByCurrency, loading, subscriptions } = useSubscriptions();
+  // What this screen shows depends on the plan (admin/lib/entitlements.ts).
+  const { entitlements } = usePlan();
+  const level = entitlements.insights;
+
+  // Pro: monthly spend per category (kept per currency — never summed across).
+  const byCategory = useMemo(() => {
+    const totals = new Map<string, { category: string; currency: string; monthly: number }>();
+    for (const sub of activeSubscriptions) {
+      const key = `${sub.category}|${sub.currency}`;
+      const row = totals.get(key) ?? { category: sub.category, currency: sub.currency, monthly: 0 };
+      row.monthly += monthlyEquivalent(sub);
+      totals.set(key, row);
+    }
+    return [...totals.values()].sort((a, b) => b.monthly - a.monthly);
+  }, [activeSubscriptions]);
+  const maxCategory = Math.max(0, ...byCategory.map((r) => r.monthly));
+  const categories = useMemo(() => [...new Set(activeSubscriptions.map((s) => s.category))].sort(), [activeSubscriptions]);
 
   const ranked = [...activeSubscriptions].sort(
     (a, b) => monthlyEquivalent(b) - monthlyEquivalent(a)
@@ -48,16 +68,31 @@ const Insights = () => {
                 {formatMoney(row.monthly, row.currency)}
               </ThemedText>
             </Card>
-            <Card className="flex-1 rounded-2xl p-4" style={{ backgroundColor: accent }}>
-              <ThemedText tone="white" className="text-xs opacity-70">Yearly{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</ThemedText>
-              <ThemedText tone="white" className="text-2xl font-extrabold mt-1">
-                {formatMoney(row.yearly, row.currency)}
-              </ThemedText>
-            </Card>
+            {level !== "basic" ? (
+              <Card className="flex-1 rounded-2xl p-4" style={{ backgroundColor: accent }}>
+                <ThemedText tone="white" className="text-xs opacity-70">Yearly{spendByCurrency.length > 1 ? ` (${row.currency})` : ""}</ThemedText>
+                <ThemedText tone="white" className="text-2xl font-extrabold mt-1">
+                  {formatMoney(row.yearly, row.currency)}
+                </ThemedText>
+              </Card>
+            ) : null}
           </View>
         ))
       )}
 
+      <View className="mt-3">
+        <BudgetsSection categories={categories} />
+      </View>
+
+      {level === "basic" ? (
+        <View className="mt-3">
+          <LockedCard
+            title="See where your money goes"
+            detail="Starter adds yearly totals and spending per subscription."
+          />
+        </View>
+      ) : (
+      <>
       <ThemedText tone="muted" className="text-sm font-semibold mb-3 mt-3">
         Spending by subscription
       </ThemedText>
@@ -96,6 +131,37 @@ const Insights = () => {
             </View>
           );
         })
+      )}
+
+      {level === "full" ? (
+        <>
+          <ThemedText tone="muted" className="text-sm font-semibold mb-3 mt-5">
+            Spending by category
+          </ThemedText>
+          {byCategory.map((row) => (
+            <View key={`${row.category}|${row.currency}`} className="mb-4">
+              <View className="flex-row items-center mb-1.5">
+                <ThemedText className="flex-1 text-sm font-medium">{row.category}</ThemedText>
+                <ThemedText className="text-sm font-semibold">
+                  {formatMoney(row.monthly, row.currency)}
+                  <Text style={{ color: colors.mutedForeground }} className="text-xs">/mo</Text>
+                </ThemedText>
+              </View>
+              <View style={{ backgroundColor: colors.muted }} className="h-2 rounded-full overflow-hidden">
+                <View
+                  style={{ width: `${maxCategory > 0 ? (row.monthly / maxCategory) * 100 : 0}%`, backgroundColor: accent }}
+                  className="h-2 rounded-full"
+                />
+              </View>
+            </View>
+          ))}
+        </>
+      ) : ranked.length > 0 ? (
+        <View className="mt-3">
+          <LockedCard title="Spending by category" detail="Pro shows which categories cost you the most." />
+        </View>
+      ) : null}
+      </>
       )}
       </ScrollView>
     </ThemedSafeAreaView>

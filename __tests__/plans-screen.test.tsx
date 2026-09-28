@@ -31,7 +31,7 @@ jest.mock("react-native-keyboard-aware-scroll-view", () => {
 
 const AVAILABLE: AvailablePlan[] = [
     { id: "free", name: "Free", price: 0, currency: "MWK", interval: null },
-    { id: "starter", name: "Starter", price: 2000, currency: "MWK", interval: "monthly", features: ["Track up to 20 subscriptions"] },
+    { id: "starter", name: "Starter", price: 2000, currency: "MWK", interval: "monthly", features: ["Track up to 20 subscriptions", "SMS reminders"] },
     { id: "pro", name: "Pro", price: 5000, currency: "MWK", interval: "monthly" },
 ];
 const FREE: CurrentPlan = { plan: "free", status: "ACTIVE", isActive: true, startedAt: null, expiresAt: null, pendingChange: null, endedPlan: null };
@@ -112,6 +112,7 @@ describe("Plans screen", () => {
         expect(screen.getByText("Choose a plan below to unlock more features.")).toBeOnTheScreen();
         // Each card lists what the plan includes, as sent by the server.
         expect(screen.getByText("Track up to 20 subscriptions")).toBeOnTheScreen();
+        expect(screen.getByText("SMS reminders")).toBeOnTheScreen();
         expect(screen.getByText("2,000 MWK / month")).toBeOnTheScreen();
 
         await choosePlanAndPay("Upgrade");

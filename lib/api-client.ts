@@ -19,7 +19,7 @@ export type GetToken = () => Promise<string | null>;
 async function request<T>(
     getToken: GetToken,
     path: string,
-    init: { method: string; body?: unknown }
+    init: { method: string; body?: unknown; text?: boolean }
 ): Promise<T> {
     if (!BASE_URL) {
         throw new Error(
@@ -43,6 +43,8 @@ async function request<T>(
     if (response.status === 204) return undefined as T;
 
     const text = await response.text();
+    // Non-JSON downloads (e.g. the CSV export): hand back the text as-is.
+    if (init.text && response.ok) return text as T;
     // A proxy/gateway can answer with an HTML error page; never surface a raw
     // JSON parse error to the user.
     let data: unknown;
@@ -65,8 +67,11 @@ async function request<T>(
 export function createApiClient(getToken: GetToken) {
     return {
         get: <T>(path: string) => request<T>(getToken, path, { method: "GET" }),
+        /** GET a non-JSON body (errors still come back as ApiError). */
+        getText: (path: string) => request<string>(getToken, path, { method: "GET", text: true }),
         post: <T>(path: string, body?: unknown) => request<T>(getToken, path, { method: "POST", body }),
         patch: <T>(path: string, body?: unknown) => request<T>(getToken, path, { method: "PATCH", body }),
+        put: <T>(path: string, body?: unknown) => request<T>(getToken, path, { method: "PUT", body }),
         del: <T>(path: string) => request<T>(getToken, path, { method: "DELETE" }),
     };
 }
