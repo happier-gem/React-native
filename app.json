@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "React-native",
-    "slug": "React-native",
+    "name": "Subscription Tracker",
+    "slug": "subscription-tracker",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -20,7 +20,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "pan",
+      "package": "net.infitech.subscriptiontracker"
     },
     "web": {
       "output": "static",
