@@ -10,7 +10,6 @@ import {
 } from "@/lib/notifications";
 import { useNotificationsSettings } from "@/context/notifications-context";
 import { createApiClient } from "@/lib/api-client";
-import { usePlan } from "@/context/plan-context";
 
 export type SubscriptionStatus = "active" | "canceled";
 
@@ -125,9 +124,6 @@ const SubscriptionsContext = createContext<SubscriptionsContextValue | undefined
 export function SubscriptionsProvider({ children }: { children: ReactNode }) {
     const { isLoaded, isSignedIn, userId, getToken } = useAuth();
     const { enabled: notificationsEnabled } = useNotificationsSettings();
-    // Which days before a renewal to remind — set per plan (Free: 1 day).
-    const { reminderSettings } = usePlan();
-    const reminderDaysKey = reminderSettings.reminderDays.join(",");
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -230,11 +226,10 @@ export function SubscriptionsProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (!notificationsEnabled) return;
-        const days = reminderDaysKey.split(",").map(Number);
         activeSubscriptions.forEach((sub) => {
-            scheduleRenewalReminder(sub.id, sub.name, sub.renewalDate, days);
+            scheduleRenewalReminder(sub.id, sub.name, sub.renewalDate);
         });
-    }, [notificationsEnabled, activeSubscriptions, reminderDaysKey]);
+    }, [notificationsEnabled, activeSubscriptions]);
 
     return (
         <SubscriptionsContext.Provider
