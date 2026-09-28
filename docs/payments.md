@@ -272,8 +272,8 @@ Correlate with `paymentId` (ours) and `providerReference` (INFI-PAY's).
 
 | Decision | Current value | Status |
 |---|---|---|
-| Starter price | 2,000 MWK / month | **Provisional** |
-| Pro price | 5,000 MWK / month | **Provisional** |
+| Starter price | 50 MWK / month | **Provisional** (set 2026-09-28) |
+| Pro price | 500 MWK / month | **Provisional** (set 2026-09-28) |
 | Upgrade: no proration, no credit | Implemented | **Needs approval** |
 | Downgrade: queued behind current plan | Implemented | **Needs approval** |
 | Renewal offered in last 7 days only | Implemented (mobile) | **Needs approval** |

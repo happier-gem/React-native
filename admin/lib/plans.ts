@@ -30,8 +30,8 @@ export type PlanConfig = {
 // business-approved amounts before any real money flows through this.
 // ============================================================================
 export const PLANS: Record<PlanId, PlanConfig> = {
-  starter: { id: "starter", name: "Starter", price: 2000, currency: "MWK", interval: "monthly" },
-  pro: { id: "pro", name: "Pro", price: 5000, currency: "MWK", interval: "monthly" },
+  starter: { id: "starter", name: "Starter", price: 50, currency: "MWK", interval: "monthly" },
+  pro: { id: "pro", name: "Pro", price: 500, currency: "MWK", interval: "monthly" },
 };
 
 /** How long one successful payment buys, in calendar months (see addMonths()

@@ -103,7 +103,7 @@ an `EXPO_PUBLIC_*` variable — anything there ships inside the app.
 
 ## Payments and plans (summary)
 
-Free / Starter (2,000 MWK) / Pro (5,000 MWK) per month — **prices are
+Free / Starter (50 MWK) / Pro (500 MWK) per month — **prices are
 provisional placeholders**, centralized in `admin/lib/plans.ts`.
 
 ```text
