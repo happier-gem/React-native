@@ -281,6 +281,14 @@ export function clearInitiationUncertain(id: string) {
 export const isInitiationUncertain = (payment: Pick<PaymentRecord, "status" | "metadata">) =>
   payment.status === "PENDING" && Boolean((payment.metadata ?? {}).initiation_uncertain);
 
+/** INFI-PAY's own transaction id (and, if it couldn't be stored in
+ * provider_reference, its reference) — kept for operators and reconciliation. */
+export function recordProviderIds(id: string, ids: { providerReference?: string; providerTransactionId?: string }) {
+  return mergePaymentMetadata(id, {
+    provider_ids: { ...ids, at: new Date().toISOString() },
+  });
+}
+
 /** A verified provider report that contradicts a payment's final status. */
 export function recordProviderConflict(
   id: string,

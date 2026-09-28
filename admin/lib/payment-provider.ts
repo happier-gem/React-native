@@ -32,15 +32,21 @@ export type InitiateCollectionParams = {
   currency: string;
   phoneNumber: string;
   network: MobileMoneyNetwork;
-  /** The globally unique reference this payment is known by at the provider
-   * (payments.provider_reference). INFI-PAY treats a repeated reference as the
-   * same transaction, which makes retrying an uncertain initiation safe. */
+  /** Our own reference for this payment (the payment id), sent so the
+   * provider can echo it back. The provider assigns its own reference, which
+   * is what we store and look the payment up by. */
   reference: string;
 };
 
 export type ProviderInitiateResult =
   /** The provider accepted the request and gave us its reference. */
-  | { kind: "accepted"; providerReference: string }
+  | {
+      kind: "accepted";
+      /** The provider's own reference — stored as payments.provider_reference
+       * and used for every status lookup. */
+      providerReference: string;
+      providerTransactionId?: string;
+    }
   /** The provider definitely did NOT create a collection (it said no, or we
    * never sent the request). Safe to mark the payment FAILED. */
   | { kind: "rejected"; reason: string }
@@ -64,6 +70,9 @@ export type ProviderStatusResult =
        * before a SUCCESS is accepted. */
       amount?: number;
       currency?: string;
+      /** The provider's reference for the transaction looked up (lets a
+       * lookup by transaction id be matched to our payment). */
+      providerReference?: string;
     }
   /** The provider answered, but with a status we don't recognise. Never
    * treated as success or failure — flagged for investigation. */
