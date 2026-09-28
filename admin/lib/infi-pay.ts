@@ -181,6 +181,27 @@ function mapStatus(raw: unknown): StatusMapping {
   }
 }
 
+/** Fields whose values are safe to keep when describing an unexpected reply.
+ * Anything else (phoneNumber, accountName, …) is recorded by name only. */
+const SAFE_VALUE_FIELDS = new Set(["success", "reference", "id", "transactionId", "status", "type", "provider", "amount", "currency", "code", "message", "externalRef"]);
+
+/** Field names at every level (depth ≤ 3) plus safe values — for diagnosing a
+ * reply that doesn't match the documentation, without storing personal data. */
+function describeShape(value: unknown, depth = 0): unknown {
+  const record = asRecord(value);
+  if (!record) return Array.isArray(value) ? `array(${value.length})` : typeof value;
+  if (depth >= 3) return "object";
+  return Object.fromEntries(
+    Object.entries(record).map(([key, v]) => {
+      if (asRecord(v)) return [key, describeShape(v, depth + 1)];
+      if (SAFE_VALUE_FIELDS.has(key) && (typeof v === "string" || typeof v === "number" || typeof v === "boolean")) {
+        return [key, typeof v === "string" ? v.slice(0, 80) : v];
+      }
+      return [key, Array.isArray(v) ? `array(${v.length})` : typeof v];
+    })
+  );
+}
+
 const isNetworkError = (e: unknown) =>
   e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError" || e.name === "TypeError");
 
@@ -238,7 +259,8 @@ export const infiPayProvider: PaymentProvider = {
       return { kind: "uncertain", reason: isNetworkError(e) ? "network_or_timeout" : "request_error" };
     }
 
-    const body = envelope(readJson(await response.text().catch(() => "")));
+    const raw = readJson(await response.text().catch(() => ""));
+    const body = envelope(raw);
 
     if (response.status >= 500 || response.status === 408) {
       logError("initiate:server-error", { reference: params.reference, status: response.status, code: body.errorCode });
@@ -246,8 +268,9 @@ export const infiPayProvider: PaymentProvider = {
     }
     if (response.ok && !body.recognized) {
       // A 2xx we can't read: it may well have been created.
-      logError("initiate:unreadable", { reference: params.reference, status: response.status });
-      return { kind: "uncertain", reason: "unreadable_success_response" };
+      const diagnostics = { httpStatus: response.status, shape: describeShape(raw) };
+      logError("initiate:unreadable", { reference: params.reference, ...diagnostics });
+      return { kind: "uncertain", reason: "unreadable_success_response", diagnostics };
     }
     if (!response.ok || !body.success) {
       // 4xx (validation, auth, 429 rate limit) or an explicit success:false —
@@ -258,8 +281,9 @@ export const infiPayProvider: PaymentProvider = {
 
     // INFI-PAY identifies the transaction by our reference and echoes it back.
     if (body.data?.reference !== params.reference) {
-      logError("initiate:reference-mismatch", { reference: params.reference, hasData: Boolean(body.data) });
-      return { kind: "uncertain", reason: "reference_not_echoed" };
+      const diagnostics = { httpStatus: response.status, shape: describeShape(raw) };
+      logError("initiate:reference-mismatch", { reference: params.reference, ...diagnostics });
+      return { kind: "uncertain", reason: "reference_not_echoed", diagnostics };
     }
     return { kind: "accepted", providerReference: params.reference };
   },

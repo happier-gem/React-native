@@ -140,6 +140,27 @@ describe("initiateCollection", () => {
     expect((await infiPayProvider.initiateCollection(PARAMS)).kind).toBe("uncertain");
   });
 
+  it("an unexpected success reply is described for diagnosis — field names and safe values only", async () => {
+    fetchMock.mockResolvedValue(
+      ok({ transaction: { reference: "COL_123", status: "pending", phoneNumber: "0991234567", accountName: "John Doe" } })
+    );
+    const result = await infiPayProvider.initiateCollection(PARAMS);
+    expect(result).toMatchObject({
+      kind: "uncertain",
+      reason: "reference_not_echoed",
+      diagnostics: {
+        httpStatus: 200,
+        shape: {
+          success: true,
+          data: { transaction: { reference: "COL_123", status: "pending", phoneNumber: "string", accountName: "string" } },
+          meta: { requestId: "string" },
+        },
+      },
+    });
+    expect(JSON.stringify(result)).not.toContain("0991234567");
+    expect(JSON.stringify(result)).not.toContain("John Doe");
+  });
+
   it("never logs the API key or the phone number", async () => {
     fetchMock.mockRejectedValueOnce(new TypeError("fetch failed")).mockResolvedValueOnce(fail(500, "X")).mockResolvedValueOnce(fail(400, "Y"));
     for (let i = 0; i < 3; i++) await infiPayProvider.initiateCollection(PARAMS);

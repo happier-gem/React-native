@@ -72,7 +72,7 @@ async function sendCollection(provider: PaymentProvider, payment: PaymentRecord,
     case "uncertain":
       // A charge prompt may have been sent. Keep it PENDING and flagged;
       // recovery asks INFI-PAY by reference, and a retry resends safely.
-      await markInitiationUncertain(payment.id, result.reason);
+      await markInitiationUncertain(payment.id, result.reason, result.diagnostics);
       paymentLog("error", "initiate.uncertain", { source: "initiate", paymentId: payment.id, reason: result.reason });
       return json({ error: MSG_UNAVAILABLE }, 503);
   }
