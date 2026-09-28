@@ -35,6 +35,6 @@ export async function POST(request: Request) {
     brand_color: body.brand_color,
   });
 
-  if (!result.ok) return Response.json({ error: result.error }, { status: result.status });
+  if (!result.ok) return Response.json({ error: result.error, code: result.code }, { status: result.status });
   return Response.json({ subscription: result.row }, { status: 201 });
 }

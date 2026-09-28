@@ -7,6 +7,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { id } = await params;
   const result = await renewSubscriptionForUser(auth.userId, id);
-  if (!result.ok) return Response.json({ error: result.error }, { status: result.status });
+  if (!result.ok) return Response.json({ error: result.error, code: result.code }, { status: result.status });
   return Response.json({ subscription: result.row });
 }

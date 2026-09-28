@@ -71,6 +71,13 @@ with checks(check_name, ok) as (
       exists (select 1 from pg_constraint where conname = 'user_plans_pending_check' and conrelid = to_regclass('public.user_plans'))),
     ('user_plan_events unique payment_id index',
       coalesce((select indisunique from pg_index where indexrelid = to_regclass('public.user_plan_events_payment_id_unique_idx')), false)),
-    ('user_plan_events (user_id, created_at) index', to_regclass('public.user_plan_events_user_id_created_at_idx') is not null)
+    ('user_plan_events (user_id, created_at) index', to_regclass('public.user_plan_events_user_id_created_at_idx') is not null),
+
+    -- user settings (plan features)
+    ('table public.user_settings exists',      to_regclass('public.user_settings') is not null),
+    ('RLS enabled: user_settings',             coalesce((select relrowsecurity from pg_class where oid = to_regclass('public.user_settings')), false)),
+    ('anon has no access: user_settings',      not coalesce(has_table_privilege('anon', to_regclass('public.user_settings'), 'SELECT,INSERT,UPDATE,DELETE'), true)),
+    ('user_settings reminder days check',
+      exists (select 1 from pg_constraint where conname = 'user_settings_reminder_days_check' and conrelid = to_regclass('public.user_settings')))
 )
 select check_name, ok from checks order by ok, check_name;

@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { checkCanActivateSubscription } from "@/lib/plan-limits";
 import { addCycle, aggregateSpendByCurrency, monthlyEquivalent, type BillingCycle } from "@/lib/format";
 
 export type SubscriptionStatus = "active" | "canceled";
@@ -148,7 +149,7 @@ export async function getSubscriptionAnalytics(): Promise<SubscriptionAnalytics>
 
 export type SubscriptionResult =
   | { ok: true; row: SubscriptionRecord }
-  | { ok: false; status: 400 | 404 | 500; error: string };
+  | { ok: false; status: 400 | 403 | 404 | 500; error: string; code?: "plan_limit" };
 
 export type NewSubscriptionInput = {
   name: string;
@@ -181,6 +182,10 @@ export async function createSubscriptionForUser(
 ): Promise<SubscriptionResult> {
   const validationError = validateNewSubscription(input);
   if (validationError) return { ok: false, status: 400, error: validationError };
+
+  // Plan limit (lib/entitlements.ts), enforced here — not just hidden in the app.
+  const allowed = await checkCanActivateSubscription(userId);
+  if (!allowed.ok) return allowed;
 
   const { data, error } = await supabaseAdmin()
     .from("subscriptions")
@@ -280,6 +285,13 @@ export async function renewSubscriptionForUser(userId: string, id: string): Prom
     return { ok: false, status: 404, error: "Subscription not found" };
   }
   const row = existing as SubscriptionRecord;
+
+  // Renewing a cancelled subscription makes it active again — that counts
+  // against the plan's limit like adding a new one.
+  if (row.status !== "active") {
+    const allowed = await checkCanActivateSubscription(userId);
+    if (!allowed.ok) return allowed;
+  }
 
   const { data, error } = await supabaseAdmin()
     .from("subscriptions")
