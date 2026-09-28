@@ -1,10 +1,13 @@
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { ApiError, createApiClient } from "@/lib/api-client";
 
 const reply = (status: number, body: string) =>
     jest.fn(async () => ({ ok: status >= 200 && status < 300, status, statusText: "x", text: async () => body }));
 
 describe("api client", () => {
-    afterEach(() => jest.restoreAllMocks());
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
 
     it("sends the Clerk token and returns parsed JSON", async () => {
         const fetchMock = reply(200, '{"plan":"pro"}');

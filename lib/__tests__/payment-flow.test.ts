@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { ApiError, type ApiClient } from "@/lib/api-client";
 import type { CurrentPlan } from "@/context/plan-context";
 import {
@@ -38,8 +39,12 @@ function setup(opts: { statuses?: ClientPayment["status"][]; initiate?: PaymentA
     return { checkout, api, refreshPlan, pendingStore, states, last: () => states[states.length - 1] };
 }
 
-beforeEach(() => jest.useFakeTimers());
-afterEach(() => jest.useRealTimers());
+beforeEach(() => {
+    jest.useFakeTimers();
+});
+afterEach(() => {
+    jest.useRealTimers();
+});
 
 describe("payment initiation", () => {
     it("successful initiation moves to pending and remembers the payment", async () => {

@@ -1,3 +1,4 @@
+import { describe, expect, it } from "@jest/globals";
 import type { AvailablePlan, CurrentPlan } from "@/context/plan-context";
 import {
     describeCurrentPlan,
