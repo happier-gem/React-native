@@ -2,11 +2,17 @@ const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 export class ApiError extends Error {
     status: number;
-    constructor(status: number, message: string) {
+    /** Machine-readable reason from the server, e.g. "plan_limit". */
+    code?: string;
+    constructor(status: number, message: string, code?: string) {
         super(message);
         this.status = status;
+        this.code = code;
     }
 }
+
+/** True when the server refused because the user's plan doesn't include it. */
+export const isPlanLimitError = (e: unknown): e is ApiError => e instanceof ApiError && e.code === "plan_limit";
 
 export type GetToken = () => Promise<string | null>;
 
@@ -49,7 +55,8 @@ async function request<T>(
 
     if (!response.ok) {
         const message = (data && typeof data === "object" && "error" in data ? data.error : null) ?? response.statusText;
-        throw new ApiError(response.status, String(message));
+        const code = data && typeof data === "object" && "code" in data && typeof data.code === "string" ? data.code : undefined;
+        throw new ApiError(response.status, String(message), code);
     }
 
     return data as T;
@@ -60,6 +67,7 @@ export function createApiClient(getToken: GetToken) {
         get: <T>(path: string) => request<T>(getToken, path, { method: "GET" }),
         post: <T>(path: string, body?: unknown) => request<T>(getToken, path, { method: "POST", body }),
         patch: <T>(path: string, body?: unknown) => request<T>(getToken, path, { method: "PATCH", body }),
+        put: <T>(path: string, body?: unknown) => request<T>(getToken, path, { method: "PUT", body }),
         del: <T>(path: string) => request<T>(getToken, path, { method: "DELETE" }),
     };
 }
