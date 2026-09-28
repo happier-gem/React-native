@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ActivityIndicator, Image, ImageSourcePropType, Modal, Pressable, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { ThemedText } from "@/components/themed";
@@ -14,30 +14,6 @@ import {
     type InitiateInput,
     type PaymentProvider,
 } from "@/lib/payment-flow";
-
-/**
- * Official network logos. Until the files are added, a brand-colored badge is
- * shown instead. To use the real logos, save them (square PNG, ~192×192) as
- * assets/images/networks/airtel-money.png and tnm-mpamba.png, then:
- *   airtel_money: require("@/assets/images/networks/airtel-money.png"),
- *   tnm_mpamba: require("@/assets/images/networks/tnm-mpamba.png"),
- */
-const NETWORK_LOGOS: Partial<Record<PaymentProvider, ImageSourcePropType>> = {};
-
-/** Stand-in text for the badge shown until a logo file exists. */
-const NETWORK_BADGE_TEXT: Record<PaymentProvider, string> = { airtel_money: "airtel", tnm_mpamba: "TNM" };
-
-function NetworkLogo({ network, brandColor }: { network: PaymentProvider; brandColor: string }) {
-    const logo = NETWORK_LOGOS[network];
-    if (logo) {
-        return <Image source={logo} resizeMode="contain" accessibilityIgnoresInvertColors style={{ width: 48, height: 48, borderRadius: 12 }} />;
-    }
-    return (
-        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: brandColor }} className="items-center justify-center">
-            <Text className="text-xs font-extrabold text-white">{NETWORK_BADGE_TEXT[network]}</Text>
-        </View>
-    );
-}
 
 export type CheckoutSelection = {
     plan: AvailablePlan & { id: PaidTierId };
@@ -184,18 +160,22 @@ function ConfirmStep({
                             accessibilityRole="radio"
                             accessibilityLabel={p.name}
                             accessibilityState={{ selected }}
-                            // Logo tile. Selected: checkmark + full strength; the other
-                            // is faded — so the choice never relies on color alone.
-                            style={{ flex: 1, backgroundColor: colors.card, opacity: selected ? 1 : 0.5 }}
-                            className="rounded-2xl py-4 px-3 items-center"
+                            // Always in the network's own brand color; the selected one
+                            // shows a checkmark, the other is dimmed (not color alone).
+                            style={{
+                                flex: 1,
+                                backgroundColor: p.brandColor,
+                                opacity: selected ? 1 : 0.55,
+                            }}
+                            className="rounded-2xl p-3 flex-row items-center justify-center"
                         >
-                            <NetworkLogo network={p.id} brandColor={p.brandColor} />
-                            <ThemedText className="font-semibold mt-2">{p.name}</ThemedText>
-                            {selected ? (
-                                <View style={{ position: "absolute", top: 8, right: 8 }}>
-                                    <Ionicons name="checkmark-circle" size={22} color={p.brandColor} />
-                                </View>
-                            ) : null}
+                            <Ionicons
+                                name={selected ? "checkmark-circle" : "ellipse-outline"}
+                                size={18}
+                                color="#ffffff"
+                                style={{ marginRight: 6 }}
+                            />
+                            <Text className="font-bold text-white">{p.name}</Text>
                         </Pressable>
                     );
                 })}

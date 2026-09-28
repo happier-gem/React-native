@@ -14,7 +14,7 @@ export const accentPresets = [
     { name: "Rose", hex: "#f43f5e" },
     // Mid-dark shades: the accent is used both behind white text (buttons)
     // and as text on light and dark backgrounds, so it must read on all three.
-    { name: "Dark Blue", hex: "#1d4ed8" },
+    { name: "Dark Blue", hex: "#1e3a8a" },
     { name: "Green", hex: "#15803d" },
     { name: "Gray", hex: "#6b7280" },
 ] as const;

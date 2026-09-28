@@ -23,7 +23,7 @@ type CurrencyContextValue = {
 const CurrencyContext = createContext<CurrencyContextValue | undefined>(undefined);
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-    const [code, setCode] = useState<CurrencyCode>("USD");
+    const [code, setCode] = useState<CurrencyCode>("MWK");
     const [hydrated, setHydrated] = useState(false);
 
     useEffect(() => {
