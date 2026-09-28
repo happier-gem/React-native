@@ -1,36 +1,13 @@
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import React, { useMemo } from "react";
-import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { usePlan } from "@/context/plan-context";
+import { LockedCard } from "@/components/insights/locked-card";
+import { BudgetsSection } from "@/components/insights/budgets-section";
 import { useAppTheme } from "@/context/theme-context";
 import { formatMoney } from "@/constants/data";
 import { monthlyEquivalent, useSubscriptions } from "@/context/subscriptions-context";
 import { Card, ThemedSafeAreaView, ThemedText } from "@/components/themed";
 import { BrandIcon } from "@/components/brand-icon";
-
-/** A card telling the user what an upgrade unlocks here. */
-const LockedCard = ({ title, detail }: { title: string; detail: string }) => {
-  const { colors, accent } = useAppTheme();
-  return (
-    <Pressable
-      onPress={() => router.push("/plans")}
-      accessibilityRole="button"
-      accessibilityLabel={`${title}. ${detail}. See plans`}
-    >
-      <Card className="rounded-2xl p-4 mb-4 flex-row items-center">
-        <View className="w-9 h-9 rounded-full items-center justify-center mr-3" style={{ backgroundColor: accent + "26" }}>
-          <Ionicons name="lock-closed" size={16} color={accent} />
-        </View>
-        <View className="flex-1">
-          <ThemedText className="text-base font-semibold">{title}</ThemedText>
-          <ThemedText tone="muted" className="text-xs mt-0.5">{detail}</ThemedText>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
-      </Card>
-    </Pressable>
-  );
-};
 
 const Insights = () => {
   const { colors, accent } = useAppTheme();
@@ -51,6 +28,7 @@ const Insights = () => {
     return [...totals.values()].sort((a, b) => b.monthly - a.monthly);
   }, [activeSubscriptions]);
   const maxCategory = Math.max(0, ...byCategory.map((r) => r.monthly));
+  const categories = useMemo(() => [...new Set(activeSubscriptions.map((s) => s.category))].sort(), [activeSubscriptions]);
 
   const ranked = [...activeSubscriptions].sort(
     (a, b) => monthlyEquivalent(b) - monthlyEquivalent(a)
@@ -101,6 +79,10 @@ const Insights = () => {
           </View>
         ))
       )}
+
+      <View className="mt-3">
+        <BudgetsSection categories={categories} />
+      </View>
 
       {level === "basic" ? (
         <View className="mt-3">

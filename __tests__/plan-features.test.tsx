@@ -7,7 +7,28 @@ import { FREE_ENTITLEMENTS, type Entitlements } from "@/context/plan-context";
 
 // Plan-dependent screens, driven by the entitlements the server sends.
 
-jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+jest.mock("expo-router", () => {
+    const { useEffect } = jest.requireActual("react");
+    return { router: { push: jest.fn() }, useFocusEffect: (effect: () => void) => useEffect(effect, [effect]) };
+});
+jest.mock("react-native-keyboard-aware-scroll-view", () => {
+    const { ScrollView: MockScrollView } = jest.requireActual("react-native");
+    return { KeyboardAwareScrollView: ({ children }: { children: React.ReactNode }) => <MockScrollView>{children}</MockScrollView> };
+});
+jest.mock("@/lib/notifications", () => ({ notifyBudget: jest.fn() }));
+jest.mock("@/context/notifications-context", () => ({ useNotificationsSettings: () => ({ enabled: false }) }));
+const mockBudgets = { list: [] as object[], save: jest.fn(async () => {}), refresh: jest.fn(async () => {}) };
+jest.mock("@/hooks/use-budgets", () => ({
+    ...jest.requireActual("@/hooks/use-budgets"),
+    useBudgets: () => ({
+        budgets: mockBudgets.list,
+        loading: false,
+        error: null,
+        refresh: mockBudgets.refresh,
+        save: mockBudgets.save,
+        remove: jest.fn(),
+    }),
+}));
 jest.mock("@clerk/expo", () => ({ useAuth: () => ({ isLoaded: true, isSignedIn: true, userId: "u", getToken: async () => "t" }) }));
 
 const mockPlan = {
@@ -47,6 +68,8 @@ const STARTER: Entitlements = { ...FREE_ENTITLEMENTS, reminderDayOptions: [1, 3,
 const withTheme = (node: React.ReactElement) => render(<ThemeProvider>{node}</ThemeProvider>);
 
 beforeEach(() => {
+    mockBudgets.list = [];
+    mockBudgets.save.mockClear();
     mockPlan.entitlements = FREE_ENTITLEMENTS;
     mockPlan.reminderSettings = { reminderDays: [1], smsReminders: false, whatsappReminders: false, reminderPhone: null };
     mockPlan.updateReminderSettings.mockClear();
@@ -100,5 +123,35 @@ describe("Reminder settings by plan", () => {
         await withTheme(<ReminderSettingsModal visible onClose={() => {}} />);
         await fireEvent.press(screen.getByLabelText("7 days before"));
         expect(mockPlan.updateReminderSettings).toHaveBeenCalledWith({ reminderDays: [1, 7] });
+    });
+});
+
+describe("Budgets by plan", () => {
+    const overall = { id: "b1", category: null, monthlyLimit: 5000, currency: "MWK", spent: 6500, percent: 130, status: "over", active: true };
+
+    it("Free: budgets are locked", async () => {
+        await withTheme(<Insights />);
+        expect(screen.getByText("Monthly budget alerts")).toBeOnTheScreen();
+        expect(screen.queryByLabelText("Add budget")).not.toBeOnTheScreen();
+    });
+
+    it("Starter: shows the overall budget with a written status; only one allowed", async () => {
+        mockPlan.entitlements = { ...STARTER, budgets: "overall" };
+        mockBudgets.list = [overall];
+        await withTheme(<Insights />);
+        expect(screen.getByText("Overall")).toBeOnTheScreen();
+        expect(screen.getByText("Over budget")).toBeOnTheScreen(); // text, not just color
+        expect(screen.queryByLabelText("Add budget")).not.toBeOnTheScreen();
+    });
+
+    it("Pro: can add a category budget", async () => {
+        mockPlan.entitlements = { ...PRO, budgets: "per_category" };
+        mockBudgets.list = [overall];
+        await withTheme(<Insights />);
+        await fireEvent.press(screen.getByLabelText("Add budget"));
+        await fireEvent.press(screen.getByLabelText("Use category Music"));
+        await fireEvent.changeText(screen.getByLabelText("Monthly limit"), "2000");
+        await fireEvent.press(screen.getByLabelText("Save budget"));
+        expect(mockBudgets.save).toHaveBeenCalledWith({ category: "Music", monthlyLimit: 2000, currency: "MWK" }, undefined);
     });
 });

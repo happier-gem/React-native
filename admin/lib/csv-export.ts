@@ -26,7 +26,7 @@ export function subscriptionsToCsv(rows: SubscriptionRecord[]): string {
       monthly.toFixed(2),
       r.renewal_date,
       r.status,
-      r.created_at.slice(0, 10),
+      (r.created_at ?? "").slice(0, 10),
     ].map(csvCell).join(",");
   });
   // CRLF line endings and a UTF-8 BOM so Excel opens it correctly.

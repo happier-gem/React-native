@@ -7,7 +7,10 @@ const db = vi.hoisted(() => ({ createBudget: vi.fn(), updateBudget: vi.fn(), del
 vi.mock("@/lib/mobile-auth", () => ({ authenticateMobileRequest: async () => auth.result }));
 vi.mock("@/lib/user-plans", () => ({ getEffectiveUserPlan: async () => ({ plan: state.plan }) }));
 vi.mock("@/lib/subscriptions", () => ({
-  listSubscriptionsForUser: async () => ({ ok: true, rows: [{ price: 3000, cycle: "monthly", currency: "MWK", category: "Music", status: "active" }] }),
+  listSubscriptionsForUser: async () => ({
+    ok: true,
+    rows: [{ name: "Spotify", price: 3000, cycle: "monthly", currency: "MWK", category: "Music", status: "active", renewal_date: "2026-10-28", created_at: "2026-09-01T10:00:00Z" }],
+  }),
 }));
 vi.mock("@/lib/budgets", async (importOriginal) => ({ ...(await importOriginal<object>()), ...db }));
 
