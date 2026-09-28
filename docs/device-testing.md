@@ -20,7 +20,7 @@ credentials and documentation exist — see [payments.md](payments.md#infi-pay-i
 |---|---|---|---|
 | 1 | Free user opens Settings → Plan | Row shows "Free · Upgrade"; Plans screen opens | |
 | 2 | Plans shows current plan | "FREE — Choose a plan below…" | |
-| 3 | Tap **Upgrade** on Starter | Confirmation: Starter, 2,000 MWK, Monthly, explanation | |
+| 3 | Tap **Upgrade** on Starter | Confirmation: Starter, 50 MWK, Monthly, explanation | |
 | 4 | Choose provider, enter phone | Continue enabled only for a valid Malawi number | |
 | 5 | Tap **Continue to payment** once, then again quickly | Single "Starting payment…", then "Payment pending"; admin shows **one** PENDING payment | |
 | 6 | Approve the prompt on the phone | — | |
