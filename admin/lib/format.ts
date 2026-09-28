@@ -17,10 +17,23 @@ export function formatMoney(amount: number, currency: string): string {
   }
 }
 
+/** Every date in the admin is shown in Malawi time (CAT, UTC+2), whatever
+ * timezone the server runs in (hosting providers usually run in UTC). */
+export const ADMIN_TIME_ZONE = "Africa/Blantyre";
+
 export function formatDate(value: string | number | Date): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: ADMIN_TIME_ZONE });
+}
+
+/** e.g. "Sep 28, 2026, 11:12 CAT" — Malawi time. */
+export function formatDateTime(value: string | number | Date | null | undefined): string {
+  if (value === null || value === undefined) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  const time = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: ADMIN_TIME_ZONE });
+  return `${formatDate(date)}, ${time} CAT`;
 }
 
 /** Moves a YYYY-MM-DD date forward by one billing cycle. Mirrors the mobile
