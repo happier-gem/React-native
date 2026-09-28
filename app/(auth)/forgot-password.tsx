@@ -1,4 +1,4 @@
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native"
+import { Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native"
 import React, { useState } from "react"
 import { Link, router } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
@@ -27,7 +27,7 @@ const ForgotPassword = () => {
         color: colors.foreground,
     }
 
-    const handleSendCode = async () => {
+    const runSendCode = async () => {
         if (!email.trim()) {
             setError("Enter the email address on your account.")
             return
@@ -49,7 +49,17 @@ const ForgotPassword = () => {
         setStep("reset")
     }
 
-    const handleResetPassword = async () => {
+    // Clerk can throw as well as return { error } — surface it instead of an
+    // unhandled promise (which looks like the button doing nothing).
+    const handleSendCode = async () => {
+        try {
+            await runSendCode()
+        } catch (e) {
+            setError(e instanceof Error && e.message ? e.message : "Something went wrong. Please try again.")
+        }
+    }
+
+    const runResetPassword = async () => {
         if (!code.trim() || !password.trim() || !confirmPassword.trim()) {
             setError("Fill in every field to continue.")
             return
@@ -91,6 +101,16 @@ const ForgotPassword = () => {
             return
         }
 
+        // On a new device Clerk may still want a verification code before it
+        // creates a session (Device Trust). The password IS changed — send the
+        // user to Sign In, which handles that step, instead of finalize()
+        // throwing "Cannot finalize sign-in without a created session".
+        if (signIn.status !== "complete") {
+            Alert.alert("Password changed", "Please sign in with your new password.")
+            router.replace("/(auth)/sign-in")
+            return
+        }
+
         const { error: finalizeError } = await signIn.finalize()
         if (finalizeError) {
             setError(finalizeError.longMessage ?? finalizeError.message)
@@ -98,6 +118,16 @@ const ForgotPassword = () => {
         }
 
         router.replace("/home")
+    }
+
+    // Clerk can throw as well as return { error } — surface it instead of an
+    // unhandled promise (which looks like the button doing nothing).
+    const handleResetPassword = async () => {
+        try {
+            await runResetPassword()
+        } catch (e) {
+            setError(e instanceof Error && e.message ? e.message : "Something went wrong. Please try again.")
+        }
     }
 
     return (

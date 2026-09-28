@@ -13,8 +13,40 @@ const SignIn = () => {
     const [password, setPassword] = useState("")
     const [showPassword, setShowPassword] = useState(true)
     const [error, setError] = useState("")
+    // "verify": Clerk wants an emailed code before it creates the session —
+    // e.g. Device Trust on a new device ("needs_client_trust") or email 2FA.
+    const [step, setStep] = useState<"credentials" | "verify">("credentials")
+    const [code, setCode] = useState("")
+    const [notice, setNotice] = useState("")
 
     const isSubmitting = fetchStatus === "fetching"
+
+    // Clerk can also throw (not just return { error }) — never let that escape
+    // as an unhandled promise, which looks like "nothing happens".
+    const describe = (e: unknown) =>
+        e instanceof Error && e.message ? e.message : "Something went wrong. Please try again."
+
+    const finish = async () => {
+        const { error: finalizeError } = await signIn.finalize()
+        if (finalizeError) {
+            setError(finalizeError.longMessage ?? finalizeError.message)
+            return
+        }
+        router.replace("/home")
+    }
+
+    const canVerifyByEmail = () =>
+        (signIn.status === "needs_client_trust" || signIn.status === "needs_second_factor") &&
+        signIn.supportedSecondFactors.some((factor) => factor.strategy === "email_code")
+
+    const sendCode = async () => {
+        const { error: sendError } = await signIn.mfa.sendEmailCode()
+        if (sendError) {
+            setError(sendError.longMessage ?? sendError.message)
+            return false
+        }
+        return true
+    }
 
     const handleSignIn = async () => {
         if (!email.trim() || !password.trim()) {
@@ -22,23 +54,73 @@ const SignIn = () => {
             return
         }
         setError("")
+        setNotice("")
 
-        const { error: passwordError } = await signIn.password({
-            identifier: email.trim(),
-            password,
-        })
-        if (passwordError) {
-            setError(passwordError.longMessage ?? passwordError.message)
+        try {
+            const { error: passwordError } = await signIn.password({
+                identifier: email.trim(),
+                password,
+            })
+            if (passwordError) {
+                setError(passwordError.longMessage ?? passwordError.message)
+                return
+            }
+
+            if (signIn.status === "complete") {
+                await finish()
+                return
+            }
+            if (canVerifyByEmail()) {
+                if (await sendCode()) {
+                    setCode("")
+                    setStep("verify")
+                }
+                return
+            }
+            setError("This account needs a verification step the app doesn't support yet. Please contact support.")
+        } catch (e) {
+            setError(describe(e))
+        }
+    }
+
+    const handleVerify = async () => {
+        if (!code.trim()) {
+            setError("Enter the code from your email.")
             return
         }
-
-        const { error: finalizeError } = await signIn.finalize()
-        if (finalizeError) {
-            setError(finalizeError.longMessage ?? finalizeError.message)
-            return
+        setError("")
+        setNotice("")
+        try {
+            const { error: verifyError } = await signIn.mfa.verifyEmailCode({ code: code.trim() })
+            if (verifyError) {
+                setError(verifyError.longMessage ?? verifyError.message)
+                return
+            }
+            if (signIn.status === "complete") {
+                await finish()
+                return
+            }
+            setError("That didn't finish signing you in. Request a new code and try again.")
+        } catch (e) {
+            setError(describe(e))
         }
+    }
 
-        router.replace("/home")
+    const handleResend = async () => {
+        setError("")
+        setNotice("")
+        try {
+            if (await sendCode()) setNotice("A new code is on its way.")
+        } catch (e) {
+            setError(describe(e))
+        }
+    }
+
+    const startOver = () => {
+        setStep("credentials")
+        setCode("")
+        setError("")
+        setNotice("")
     }
 
     const inputStyle = {
@@ -58,6 +140,64 @@ const SignIn = () => {
                     contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
                     keyboardShouldPersistTaps="handled"
                 >
+                    {step === "verify" ? (
+                        <>
+                            <ThemedText className="text-3xl font-extrabold mb-2">
+                                Check your email
+                            </ThemedText>
+                            <ThemedText tone="muted" className="text-base mb-8">
+                                For your security, we sent a verification code to {email.trim()}. Enter it to
+                                finish signing in on this device.
+                            </ThemedText>
+
+                            <ThemedText className="text-sm font-semibold mb-2">
+                                Verification code
+                            </ThemedText>
+                            <TextInput
+                                value={code}
+                                onChangeText={setCode}
+                                placeholder="123456"
+                                placeholderTextColor={colors.mutedForeground}
+                                keyboardType="number-pad"
+                                autoComplete="one-time-code"
+                                textContentType="oneTimeCode"
+                                accessibilityLabel="Verification code"
+                                style={inputStyle}
+                                className="border rounded-2xl pl-5 pr-4 py-3.5 mb-2"
+                            />
+
+                            {error ? (
+                                <Text className="text-sm text-destructive mb-2">{error}</Text>
+                            ) : null}
+                            {notice ? (
+                                <ThemedText tone="muted" className="text-sm mb-2">{notice}</ThemedText>
+                            ) : null}
+
+                            <Pressable
+                                onPress={handleVerify}
+                                disabled={isSubmitting}
+                                accessibilityRole="button"
+                                accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
+                                className="flex-row rounded-2xl bg-primary p-4 items-center justify-center mt-6"
+                                style={{ opacity: isSubmitting ? 0.7 : 1 }}
+                            >
+                                {isSubmitting ? (
+                                    <ActivityIndicator color="#ffffff" style={{ marginRight: 8 }} />
+                                ) : (
+                                    <Ionicons name="shield-checkmark-outline" size={18} color="#ffffff" style={{ marginRight: 8 }} />
+                                )}
+                                <Text className="text-base font-semibold text-white">Verify</Text>
+                            </Pressable>
+
+                            <Pressable onPress={handleResend} disabled={isSubmitting} accessibilityRole="button" className="items-center mt-6">
+                                <ThemedText tone="accent" className="font-semibold">Resend code</ThemedText>
+                            </Pressable>
+                            <Pressable onPress={startOver} accessibilityRole="button" className="items-center mt-4">
+                                <ThemedText tone="muted" className="font-semibold">Use a different account</ThemedText>
+                            </Pressable>
+                        </>
+                    ) : (
+                    <>
                     <ThemedText className="text-3xl font-extrabold mb-2">
                         Welcome back
                     </ThemedText>
@@ -143,6 +283,8 @@ const SignIn = () => {
                             </Pressable>
                         </Link>
                     </View>
+                    </>
+                    )}
                 </ScrollView>
             </KeyboardAvoidingView>
         </ThemedSafeAreaView>

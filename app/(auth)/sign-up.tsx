@@ -31,7 +31,7 @@ const SignUp = () => {
         router.replace("/home")
     }
 
-    const handleSignUp = async () => {
+    const runSignUp = async () => {
         if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
             setError("Fill in every field to continue.")
             return
@@ -66,7 +66,17 @@ const SignUp = () => {
         setPendingVerification(true)
     }
 
-    const handleVerify = async () => {
+    // Clerk can throw as well as return { error } — surface it instead of an
+    // unhandled promise (which looks like the button doing nothing).
+    const handleSignUp = async () => {
+        try {
+            await runSignUp()
+        } catch (e) {
+            setError(e instanceof Error && e.message ? e.message : "Something went wrong. Please try again.")
+        }
+    }
+
+    const runVerify = async () => {
         if (!code.trim()) {
             setError("Enter the code we emailed you.")
             return
@@ -89,6 +99,16 @@ const SignUp = () => {
         }
 
         await finishAndEnter()
+    }
+
+    // Clerk can throw as well as return { error } — surface it instead of an
+    // unhandled promise (which looks like the button doing nothing).
+    const handleVerify = async () => {
+        try {
+            await runVerify()
+        } catch (e) {
+            setError(e instanceof Error && e.message ? e.message : "Something went wrong. Please try again.")
+        }
     }
 
     const fieldWrapStyle = { backgroundColor: colors.card, borderColor: colors.border }
