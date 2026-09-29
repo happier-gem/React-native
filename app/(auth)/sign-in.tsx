@@ -11,7 +11,7 @@ const SignIn = () => {
     const { signIn, fetchStatus } = useSignIn()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
-    const [showPassword, setShowPassword] = useState(true)
+    const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState("")
     // "verify": Clerk wants an emailed code before it creates the session —
     // e.g. Device Trust on a new device ("needs_client_trust") or email 2FA.
@@ -150,7 +150,7 @@ const SignIn = () => {
                                 finish signing in on this device.
                             </ThemedText>
 
-                            <ThemedText className="text-sm font-semibold mb-2">
+                            <ThemedText className="text-sm font-sans-semibold mb-2">
                                 Verification code
                             </ThemedText>
                             <TextInput
@@ -186,14 +186,14 @@ const SignIn = () => {
                                 ) : (
                                     <Ionicons name="shield-checkmark-outline" size={18} color="#ffffff" style={{ marginRight: 8 }} />
                                 )}
-                                <Text className="text-base font-semibold text-white">Verify</Text>
+                                <Text className="text-base font-sans-semibold text-white">Verify</Text>
                             </Pressable>
 
                             <Pressable onPress={handleResend} disabled={isSubmitting} accessibilityRole="button" className="items-center mt-6">
-                                <ThemedText tone="accent" className="font-semibold">Resend code</ThemedText>
+                                <ThemedText tone="accent" className="font-sans-semibold">Resend code</ThemedText>
                             </Pressable>
                             <Pressable onPress={startOver} accessibilityRole="button" className="items-center mt-4">
-                                <ThemedText tone="muted" className="font-semibold">Use a different account</ThemedText>
+                                <ThemedText tone="muted" className="font-sans-semibold">Use a different account</ThemedText>
                             </Pressable>
                         </>
                     ) : (
@@ -205,7 +205,7 @@ const SignIn = () => {
                         Sign in to manage your subscriptions.
                     </ThemedText>
 
-                    <ThemedText className="text-sm font-semibold mb-2">
+                    <ThemedText className="text-sm font-sans-semibold mb-2">
                         Email
                     </ThemedText>
                     <TextInput
@@ -220,7 +220,7 @@ const SignIn = () => {
                         className="border rounded-2xl pl-5 pr-4 py-3.5 mb-4"
                     />
 
-                    <ThemedText className="text-sm font-semibold mb-2">
+                    <ThemedText className="text-sm font-sans-semibold mb-2">
                         Password
                     </ThemedText>
                     <View
@@ -253,7 +253,7 @@ const SignIn = () => {
 
                     <Link href="/(auth)/forgot-password" asChild>
                         <Pressable className="self-end mt-2">
-                            <ThemedText tone="accent" className="text-sm font-semibold">
+                            <ThemedText tone="accent" className="text-sm font-sans-semibold">
                                 Forgot password?
                             </ThemedText>
                         </Pressable>
@@ -270,14 +270,14 @@ const SignIn = () => {
                         ) : (
                             <Ionicons name="log-in-outline" size={18} color="#ffffff" style={{ marginRight: 8 }} />
                         )}
-                        <Text className="text-base font-semibold text-white">Sign In</Text>
+                        <Text className="text-base font-sans-semibold text-white">Sign In</Text>
                     </Pressable>
 
                     <View className="flex-row justify-center mt-6">
                         <ThemedText tone="muted">Don&apos;t have an account? </ThemedText>
                         <Link href="/(auth)/sign-up" asChild>
                             <Pressable>
-                                <ThemedText tone="accent" className="font-semibold">
+                                <ThemedText tone="accent" className="font-sans-semibold">
                                     Create Account
                                 </ThemedText>
                             </Pressable>

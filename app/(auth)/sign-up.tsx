@@ -16,8 +16,8 @@ const SignUp = () => {
     const [confirmPassword, setConfirmPassword] = useState("")
     const [code, setCode] = useState("")
     const [pendingVerification, setPendingVerification] = useState(false)
-    const [showPassword, setShowPassword] = useState(true)
-    const [showConfirmPassword, setShowConfirmPassword] = useState(true)
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [error, setError] = useState("")
 
     const isSubmitting = fetchStatus === "fetching"
@@ -135,7 +135,7 @@ const SignUp = () => {
 
                     {pendingVerification ? (
                         <>
-                            <ThemedText className="text-sm font-semibold mb-2">
+                            <ThemedText className="text-sm font-sans-semibold mb-2">
                                 Verification code
                             </ThemedText>
                             <TextInput
@@ -152,7 +152,7 @@ const SignUp = () => {
                         <>
                             <View className="flex-row" style={{ gap: 12 }}>
                                 <View className="flex-1">
-                                    <ThemedText className="text-sm font-semibold mb-2">
+                                    <ThemedText className="text-sm font-sans-semibold mb-2">
                                         First name
                                     </ThemedText>
                                     <TextInput
@@ -166,7 +166,7 @@ const SignUp = () => {
                                     />
                                 </View>
                                 <View className="flex-1">
-                                    <ThemedText className="text-sm font-semibold mb-2">
+                                    <ThemedText className="text-sm font-sans-semibold mb-2">
                                         Last name
                                     </ThemedText>
                                     <TextInput
@@ -181,7 +181,7 @@ const SignUp = () => {
                                 </View>
                             </View>
 
-                            <ThemedText className="text-sm font-semibold mb-2">
+                            <ThemedText className="text-sm font-sans-semibold mb-2">
                                 Email
                             </ThemedText>
                             <TextInput
@@ -196,7 +196,7 @@ const SignUp = () => {
                                 className="border rounded-2xl pl-5 pr-4 py-3.5 mb-4"
                             />
 
-                            <ThemedText className="text-sm font-semibold mb-2">
+                            <ThemedText className="text-sm font-sans-semibold mb-2">
                                 Password
                             </ThemedText>
                             <View style={fieldWrapStyle} className="flex-row items-center border rounded-2xl mb-4">
@@ -220,7 +220,7 @@ const SignUp = () => {
                                 </Pressable>
                             </View>
 
-                            <ThemedText className="text-sm font-semibold mb-2">
+                            <ThemedText className="text-sm font-sans-semibold mb-2">
                                 Confirm password
                             </ThemedText>
                             <View style={fieldWrapStyle} className="flex-row items-center border rounded-2xl mb-2">
@@ -266,7 +266,7 @@ const SignUp = () => {
                                 style={{ marginRight: 8 }}
                             />
                         )}
-                        <Text className="text-base font-semibold text-white">
+                        <Text className="text-base font-sans-semibold text-white">
                             {pendingVerification ? "Verify Email" : "Create Account"}
                         </Text>
                     </Pressable>
@@ -275,7 +275,7 @@ const SignUp = () => {
                         <ThemedText tone="muted">Already have an account? </ThemedText>
                         <Link href="/(auth)/sign-in" asChild>
                             <Pressable>
-                                <ThemedText tone="accent" className="font-semibold">
+                                <ThemedText tone="accent" className="font-sans-semibold">
                                     Sign In
                                 </ThemedText>
                             </Pressable>
