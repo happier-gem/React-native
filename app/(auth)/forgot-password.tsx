@@ -16,7 +16,7 @@ const ForgotPassword = () => {
     const [code, setCode] = useState("")
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
-    const [showPassword, setShowPassword] = useState(true)
+    const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState("")
 
     const isSubmitting = fetchStatus === "fetching"
@@ -152,7 +152,7 @@ const ForgotPassword = () => {
 
                     {step === "email" ? (
                         <>
-                            <ThemedText className="text-sm font-semibold mb-2">
+                            <ThemedText className="text-sm font-sans-semibold mb-2">
                                 Email
                             </ThemedText>
                             <TextInput
@@ -182,12 +182,12 @@ const ForgotPassword = () => {
                                 ) : (
                                     <Ionicons name="mail-outline" size={18} color="#ffffff" style={{ marginRight: 8 }} />
                                 )}
-                                <Text className="text-base font-semibold text-white">Send Code</Text>
+                                <Text className="text-base font-sans-semibold text-white">Send Code</Text>
                             </Pressable>
                         </>
                     ) : (
                         <>
-                            <ThemedText className="text-sm font-semibold mb-2">
+                            <ThemedText className="text-sm font-sans-semibold mb-2">
                                 Reset code
                             </ThemedText>
                             <TextInput
@@ -200,7 +200,7 @@ const ForgotPassword = () => {
                                 className="border rounded-2xl pl-5 pr-4 py-3.5 mb-4"
                             />
 
-                            <ThemedText className="text-sm font-semibold mb-2">
+                            <ThemedText className="text-sm font-sans-semibold mb-2">
                                 New password
                             </ThemedText>
                             <View
@@ -227,7 +227,7 @@ const ForgotPassword = () => {
                                 </Pressable>
                             </View>
 
-                            <ThemedText className="text-sm font-semibold mb-2">
+                            <ThemedText className="text-sm font-sans-semibold mb-2">
                                 Confirm new password
                             </ThemedText>
                             <TextInput
@@ -257,7 +257,7 @@ const ForgotPassword = () => {
                                 ) : (
                                     <Ionicons name="checkmark-circle-outline" size={18} color="#ffffff" style={{ marginRight: 8 }} />
                                 )}
-                                <Text className="text-base font-semibold text-white">Reset Password</Text>
+                                <Text className="text-base font-sans-semibold text-white">Reset Password</Text>
                             </Pressable>
 
                             <Pressable onPress={() => { setStep("email"); setError("") }} className="mt-4 self-center">
@@ -272,7 +272,7 @@ const ForgotPassword = () => {
                         <ThemedText tone="muted">Remembered your password? </ThemedText>
                         <Link href="/(auth)/sign-in" asChild>
                             <Pressable>
-                                <ThemedText tone="accent" className="font-semibold">
+                                <ThemedText tone="accent" className="font-sans-semibold">
                                     Sign In
                                 </ThemedText>
                             </Pressable>
